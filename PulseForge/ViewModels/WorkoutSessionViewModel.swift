@@ -5,6 +5,7 @@
 //  Created by Joseph DeWeese on 2/18/26.
 //
 
+import Foundation
 import SwiftUI
 import SwiftData
 import HealthKit
@@ -264,15 +265,11 @@ final class WorkoutSessionViewModel {
         return String(format: "%02d:%02d", minutes, secs)
     }
     
-    // MARK: - Heart Rate Streaming
-        /// Starts streaming heart rate if premium and authorized.
+    // MARK: - Heart Rate Streaming (kept your async stream - no Combine needed)
         private func startHeartRateStreaming() {
             guard let healthKitManager = healthKitManager,
                   purchaseManager?.isSubscribed == true,
-                  healthKitManager.isReadAuthorized else {
-                logger.debug("Heart rate streaming skipped: Not premium or not authorized")
-                return
-            }
+                  healthKitManager.isReadAuthorized else { return }
             
             hrStreamingTask = Task {
                 do {
@@ -282,7 +279,6 @@ final class WorkoutSessionViewModel {
                     }
                 } catch {
                     logger.error("HR streaming error: \(error.localizedDescription)")
-                    errorManager?.present(title: "Heart Rate Error", message: "Unable to stream heart rate data.")
                 }
             }
         }
