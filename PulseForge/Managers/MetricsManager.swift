@@ -123,11 +123,7 @@ final class MetricsManager {
         maxHR: Double?,
         distance: Double?
     ) {
-        // Explicit separate guards for maximum compiler clarity
-        guard let history = history else {
-            return (nil, nil, nil, nil, nil, nil, nil)
-        }
-        guard let workout = workout else {
+        guard let history = history, let workout = workout else {
             return (nil, nil, nil, nil, nil, nil, nil)
         }
         
@@ -136,7 +132,7 @@ final class MetricsManager {
         
         let updatedHistory = try await MetricsCalculator.calculateAdvancedMetrics(
             history: history,
-            workout: workout,                    // Now guaranteed non-optional
+            workout: workout,
             startDate: startDate,
             endDate: endDate,
             modelContext: modelContext,
@@ -163,7 +159,6 @@ final class MetricsManager {
         )
     }
     
-    // Helper: Fetch histories from SwiftData
     private func fetchHistories(for workout: Workout?) throws -> [History] {
         var descriptor = FetchDescriptor<History>()
         if let workout = workout {
@@ -176,7 +171,6 @@ final class MetricsManager {
         return try modelContext.fetch(descriptor)
     }
     
-    // Helper: Calculate streaks from dates
     private func calculateStreaks(from dates: [Date]) -> (current: Int, longest: Int) {
         guard !dates.isEmpty else { return (0, 0) }
         var current = 1
