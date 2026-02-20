@@ -7,7 +7,7 @@
 
 import SwiftUI
 import SwiftData
-import HealthKit
+internal import HealthKit
 import OSLog
 
 

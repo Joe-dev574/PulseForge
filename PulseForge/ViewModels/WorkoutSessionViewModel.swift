@@ -8,7 +8,7 @@
 import Foundation
 import SwiftUI
 import SwiftData
-import HealthKit
+internal import HealthKit
 import OSLog
 
 /// ViewModel for managing the state and logic of an active workout session.
@@ -195,6 +195,13 @@ final class WorkoutSessionViewModel {
         exercisesCompleted.append(workout.effectiveExercises[currentExerciseIndex])
         currentExerciseIndex += 1
         exerciseStartTime = secondsElapsed
+        
+        // Required fix: Update currentRound when using rounds
+        if workout.roundsEnabled && workout.roundsQuantity > 1 {
+            if currentExerciseIndex % workout.sortedExercises.count == 0 {
+                currentRound += 1
+            }
+        }
     }
     
     /// Completes the workout session, calculating metrics and saving data.
@@ -229,6 +236,8 @@ final class WorkoutSessionViewModel {
             if !workout.effectiveExercises.isEmpty {
                 history.splitTimes = splitTimes
             }
+            
+            // Premium metrics calculation (centralized)
             let updatedHistory = try await MetricsCalculator.calculateAdvancedMetrics(
                 history: history,
                 workout: workout,
@@ -238,6 +247,13 @@ final class WorkoutSessionViewModel {
                 authenticationManager: authenticationManager,
                 healthKitManager: healthKitManager
             )
+            
+            // Populate viewModel properties for UI display (required for MetricsView)
+            intensityScore = updatedHistory.intensityScore
+            progressPulseScore = updatedHistory.progressPulseScore
+            dominantZone = updatedHistory.dominantZone
+            showMetrics = true
+            
             if healthKitManager.isWriteAuthorized {
                 let samples = try await createHealthKitSamples(for: updatedHistory, workoutStartDate: startDate, workoutEndDate: endDate)
                 collectedHKSamples.append(contentsOf: samples)
@@ -265,23 +281,28 @@ final class WorkoutSessionViewModel {
         return String(format: "%02d:%02d", minutes, secs)
     }
     
-    // MARK: - Heart Rate Streaming (kept your async stream - no Combine needed)
-        private func startHeartRateStreaming() {
-            guard let healthKitManager = healthKitManager,
-                  purchaseManager?.isSubscribed == true,
-                  healthKitManager.isReadAuthorized else { return }
-            
-            hrStreamingTask = Task {
-                do {
-                    for try await sample in healthKitManager.streamHeartRate() {
-                        let bpm = sample.quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
-                        self.currentHeartRate = bpm
-                    }
-                } catch {
-                    logger.error("HR streaming error: \(error.localizedDescription)")
+    // MARK: - Heart Rate Streaming
+    private func startHeartRateStreaming() {
+        guard let healthKitManager = healthKitManager,
+              purchaseManager?.isSubscribed == true,
+              healthKitManager.isReadAuthorized else {
+            logger.debug("Heart rate streaming skipped: Not premium or not authorized")
+            return
+        }
+        
+        hrStreamingTask = Task {
+            do {
+                for try await sample in healthKitManager.streamHeartRate() {
+                    let bpm = sample.quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
+                    self.currentHeartRate = bpm
                 }
+            } catch {
+                logger.error("HR streaming error: \(error.localizedDescription)")
+                errorManager?.present(title: "Heart Rate Error", message: "Unable to stream heart rate data.")
             }
         }
+    }
+    
     // MARK: - HealthKit Samples (Category-specific implementation with MET and weight)
     /// Asynchronously creates an array of HKSample objects for the workout, including energy, heart rate, and category-specific metrics.
     /// - Parameters:
@@ -485,6 +506,9 @@ final class WorkoutSessionViewModel {
             healthKitManager.healthStore.execute(query)
         }
     }
+    var formattedTime: String {
+        formattedTime(secondsElapsed)
+    }
     
     // Helper for distance estimation fallback (category-specific assumptions)
     /// Estimates distance for fallback when no real data is available.
@@ -505,5 +529,3 @@ final class WorkoutSessionViewModel {
         }
     }
 }
-
-

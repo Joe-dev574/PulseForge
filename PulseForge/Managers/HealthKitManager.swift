@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import HealthKit
+internal import HealthKit
 import OSLog
 import SwiftUI
 import SwiftData
@@ -691,7 +691,21 @@ final class HealthKitManager {
         }
     }
     
-    // MARK: - Fetch Workouts
+    // MARK: - Added: estimateDistance (required by MetricsManager)
+        func estimateDistance(for categoryColor: CategoryColor, durationMinutes: Double) -> Double {
+            let hours = durationMinutes / 60.0
+            switch categoryColor {
+            case .RUN: return hours * 8000.0
+            case .WALK: return hours * 5000.0
+            case .HIKING: return hours * 4000.0
+            case .CYCLING: return hours * 20000.0
+            case .SWIMMING: return hours * 1500.0
+            case .ROWING: return hours * 6000.0
+            default: return 0.0
+            }
+            
+            
+        }    // MARK: - Fetch Workouts
     /// Fetches workouts from HealthKit.
     /// - Returns: Array of HKWorkout.
     /// - Throws: HealthKitError or query errors.

@@ -7,7 +7,7 @@
 
 import SwiftUI
 import SwiftData
-import HealthKit
+internal import HealthKit
 import OSLog
 
 /// Defines the color, HealthKit activity type, and MET value for workout categories.
