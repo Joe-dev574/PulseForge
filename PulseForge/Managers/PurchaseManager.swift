@@ -14,7 +14,7 @@ import Observation
 import WatchKit
 #endif
 
-/// Centralized manager for the FitSync Premium subscription ("FitSync Watch").
+/// Centralized manager for the PulseForge Premium subscription ("PulseForge Watch").
 /// Handles product loading, purchasing, status checking, restoration, and cross-app (iPhone ↔ Watch) premium syncing.
 ///
 /// Premium status is shared safely via App Group UserDefaults so the independent Watch app

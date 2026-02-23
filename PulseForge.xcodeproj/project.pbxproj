@@ -34,9 +34,22 @@
 		37C2F1B82F49130A00D63B1D /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		37C2F1DD2F4CBC2D00D63B1D /* Exceptions for "PulseForge" folder in "PulseForge" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 37C2F1342F46305800D63B1D /* PulseForge */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		37C2F1372F46305800D63B1D /* PulseForge */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				37C2F1DD2F4CBC2D00D63B1D /* Exceptions for "PulseForge" folder in "PulseForge" target */,
+			);
 			path = PulseForge;
 			sourceTree = "<group>";
 		};
@@ -415,7 +428,10 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PulseForge/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription = "\"PulseForge uses your health data with workout details like distance, calories, and heart rate to provide accurate journaling and analytics.\"";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "\"PulseForge uses your health data with workout details like distance, calories, and heart rate to provide accurate journaling and analytics.\"";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -464,7 +480,10 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PulseForge/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription = "\"PulseForge uses your health data with workout details like distance, calories, and heart rate to provide accurate journaling and analytics.\"";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "\"PulseForge uses your health data with workout details like distance, calories, and heart rate to provide accurate journaling and analytics.\"";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
