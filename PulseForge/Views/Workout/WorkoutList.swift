@@ -106,17 +106,6 @@ private struct EmptyWorkoutState: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
-            
-            NavigationLink(destination: AddWorkoutView()) {
-                Label("Create New Workout", systemImage: "plus.circle.fill")
-                    .font(.headline)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 14)
-                    .background(.blue)
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-            }
-            .buttonStyle(.plain)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.proBackground)

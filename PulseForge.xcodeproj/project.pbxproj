@@ -430,8 +430,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = PulseForge/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
-				INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription = "\"PulseForge uses your health data with workout details like distance, calories, and heart rate to provide accurate journaling and analytics.\"";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "\"PulseForge uses your health data with workout details like distance, calories, and heart rate to provide accurate journaling and analytics.\"";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "\"PulseForge uses your health data with workout details like distance, calories, and heart rate to provide accurate journaling and analytics.\"";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -482,8 +482,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = PulseForge/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
-				INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription = "\"PulseForge uses your health data with workout details like distance, calories, and heart rate to provide accurate journaling and analytics.\"";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "\"PulseForge uses your health data with workout details like distance, calories, and heart rate to provide accurate journaling and analytics.\"";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "\"PulseForge uses your health data with workout details like distance, calories, and heart rate to provide accurate journaling and analytics.\"";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;

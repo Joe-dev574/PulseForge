@@ -19,6 +19,7 @@ import Foundation
 /// - Warning: The schema includes all persistent models. View models (e.g., WorkoutSessionViewModel) should not be included here as they are not @Model entities.
 /// - Privacy: When CloudKit is enabled (premium only), data syncs privately via end-to-end encryption. No server-side access; complies with Apple's privacy guidelines for HealthKit-adjacent data.
 public final class PulseForgeContainer {
+   
     /// The shared ModelContainer instance, lazily initialized with the app's schema and configuration.
     public static let container: ModelContainer = {
         // Retrieve premium status from shared UserDefaults
