@@ -31,6 +31,9 @@ final class Exercise {
     // CloudKit-safe to-many relationship with proper inverse
     /// Array of split times recorded for this exercise during workouts.
     /// - Note: Uses cascade delete to remove associated SplitTimes when the Exercise is deleted.
+    @Relationship(inverse: \History.exercisesCompleted)
+        var history: History?
+    
     @Relationship(deleteRule: .cascade)
     var splitTimes: [SplitTime]? = []
     

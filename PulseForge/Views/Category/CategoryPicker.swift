@@ -41,39 +41,41 @@ struct CategoryPicker: View {
     ]
     
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                if categories.isEmpty {
-                    ContentUnavailableView(
-                        "No Categories",
-                        systemImage: "folder.badge.plus",
-                        description: Text("Create a category first in Settings.")
-                    )
-                } else {
-                    LazyVGrid(columns: columns, spacing: 16) {
-                        ForEach(categories) { category in
-                            CategoryCell(
-                                category: category,
-                                isSelected: selectedCategory?.id == category.id
-                            )
-                            .onTapGesture {
-                                selectedCategory = category
-                                dismiss()
+        ZStack {
+            Color.proBackground.ignoresSafeArea()
+            NavigationStack {
+                ScrollView {
+                    if categories.isEmpty {
+                        ContentUnavailableView(
+                            "No Categories",
+                            systemImage: "folder.badge.plus",
+                            description: Text("Create a category first in Settings.")
+                        )
+                    } else {
+                        LazyVGrid(columns: columns, spacing: 16) {
+                            ForEach(categories) { category in
+                                CategoryCell(
+                                    category: category,
+                                    isSelected: selectedCategory?.id == category.id
+                                )
+                                .onTapGesture {
+                                    selectedCategory = category
+                                    dismiss()
+                                }
                             }
                         }
+                        .padding(16)
                     }
-                    .padding(16)
                 }
-            }
-            .navigationTitle("Select Category")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
+                .navigationTitle("Select Category")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Done") { dismiss() }
+                    }
                 }
             }
         }
-        .preferredColorScheme(.dark) // Matches app theme
     }
 }
 

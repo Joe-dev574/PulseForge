@@ -151,7 +151,7 @@ struct WorkoutListScreen: View {
                         .font(.headline)
                         .padding(.horizontal, 24)
                         .padding(.vertical, 14)
-                        .background(.blue)
+                        .background(Color(hex: selectedThemeColorData) ?? .blue)
                         .foregroundStyle(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
@@ -210,22 +210,6 @@ private var filterPickerView: some View {
         )
     }
 }
-///// A button to trigger the add workout sheet.
-//private var addWorkoutButton: some View {
-//    Button(action: {
-//        showAddWorkoutSheet = true
-//    }) {
-//     Label("Create New Workout", systemImage: "plus.circle.fill")
-//            .font(.headline)
-//            .padding(.horizontal, 24)
-//            .padding(.vertical, 14)
-//            .background(.blue)
-//            .foregroundStyle(.white)
-//            .clipShape(RoundedRectangle(cornerRadius: 16))
-//    }
-//    .accessibilityLabel("Add Workout")
-//    .accessibilityHint("Double-tap to create a new workout")
-//}
     
 //MARK:  TOOLBAR CONTENT
 /// Toolbar content for navigation and actions.

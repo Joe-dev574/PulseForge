@@ -238,7 +238,6 @@ struct WorkoutEditView: View {
                             .font(.system(.body).weight(.medium))
                             .foregroundStyle(.primary)
                             .padding(EdgeInsets(top: 3, leading: 8, bottom: 3, trailing: 8))
-                            .background(workout.category?.categoryColor.color ?? .blue)
                             .cornerRadius(6)
                     }
                     .buttonStyle(.borderedProminent)

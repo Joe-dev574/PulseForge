@@ -32,7 +32,7 @@ final class History {
     var notes: String?
     
     /// Array of exercises completed during the session.
-    var exercisesCompleted: [Exercise] = []
+    var exercisesCompleted: [Exercise]? = []
    
     
     /// Array of split times recorded during the workout.
@@ -68,7 +68,7 @@ final class History {
         date: Date = .now,
         lastSessionDuration: Double = 0,
         notes: String? = nil,
-        exercisesCompleted: [Exercise] = [],
+        exercisesCompleted: [Exercise]? = [],
         splitTimes: [SplitTime] = [],
         intensityScore: Double? = nil,
         progressPulseScore: Double? = nil,
@@ -77,7 +77,7 @@ final class History {
         self.date = date
         self.lastSessionDuration = lastSessionDuration
         self.notes = notes
-        self.exercisesCompleted = exercisesCompleted
+        self.exercisesCompleted = exercisesCompleted ?? []
         self.splitTimes = splitTimes
         self.intensityScore = intensityScore
         self.progressPulseScore = progressPulseScore

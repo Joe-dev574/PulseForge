@@ -3,12 +3,14 @@
 //  PulseForge
 //
 //  Created by Joseph DeWeese on 2/20/26.
+//  Updated: February 25, 2026
 //
 //  Apple App Store Compliance:
-//  - Premium metrics are gated behind subscription.
-//  - Timer uses simple Foundation.Timer (no Combine).
-//  - UI designed for seamless parity with future Apple Watch app.
-//  - Full VoiceOver accessibility support.
+//  - Premium features (“Tap Anywhere to Pause”, advanced metrics) gated behind subscription.
+//  - Large, high-contrast buttons + full-screen tap target for sweaty/wet-hand use.
+//  - Strong haptic feedback on every action.
+//  - Discard confirmation alert protects against accidental loss of workout data.
+//  - Full VoiceOver accessibility with clear labels and hints.
 //
 
 import SwiftUI
@@ -29,6 +31,9 @@ struct WorkoutSessionView: View {
     @State private var viewModel: WorkoutSessionViewModel
     @AccessibilityFocusState private var isExerciseFocused: Bool
     
+    // Discard alert state
+    @State private var showDiscardAlert = false
+    
     init(workout: Workout) {
         self.workout = workout
         self._viewModel = State(wrappedValue: WorkoutSessionViewModel(workout: workout))
@@ -37,6 +42,19 @@ struct WorkoutSessionView: View {
     var body: some View {
         ZStack {
             Color.proBackground2.ignoresSafeArea()
+            
+            // Premium: Tap anywhere on screen to pause (sweaty hands friendly)
+            if purchaseManager.isSubscribed {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .simultaneousGesture(
+                        TapGesture()
+                            .onEnded {
+                                viewModel.togglePause()
+                                UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                            }
+                    )
+            }
             
             VStack(spacing: 32) {
                 Text(workout.title)
@@ -67,34 +85,52 @@ struct WorkoutSessionView: View {
                 
                 Spacer()
                 
-                VStack(spacing: 16) {
+                // Huge, sweaty-hand-friendly buttons
+                VStack(spacing: 20) {
                     Button {
+                        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
                         Task { await viewModel.primaryButtonAction() }
                     } label: {
                         Text(viewModel.primaryButtonText)
                             .font(.headline.bold())
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 18)
+                            .frame(height: 72)
                             .background(Color.blue)
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .clipShape(RoundedRectangle(cornerRadius: 20))
                     }
                     .disabled(viewModel.isCompleting)
                     
                     Button {
+                        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
                         viewModel.togglePause()
                     } label: {
                         Text(viewModel.isPaused ? "Resume" : "Pause")
                             .font(.headline.bold())
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 18)
+                            .frame(height: 72)
                             .background(Color.orange)
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .clipShape(RoundedRectangle(cornerRadius: 20))
                     }
                     .disabled(viewModel.isCompleting)
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, 24)
+                
+                // Premium hint for sweaty hands
+                if purchaseManager.isSubscribed {
+                    Text("Tap anywhere on screen to pause")
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.7))
+                        .padding(.top, 8)
+                }
+                
+                // Crown hint (future Watch reminder)
+                Text("On Apple Watch: Use Digital Crown to advance exercises")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 12)
                 
                 if purchaseManager.isSubscribed && viewModel.showMetrics {
                     MetricsView(
@@ -105,6 +141,25 @@ struct WorkoutSessionView: View {
                 }
             }
             .padding(.vertical, 40)
+        }
+        .interactiveDismissDisabled(true)           // Prevent accidental swipe-back
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("Cancel Workout") {
+                    showDiscardAlert = true
+                }
+                .foregroundStyle(.primary)
+                .fontDesign(.serif)
+            }
+        }
+        .alert("Discard Workout Session?", isPresented: $showDiscardAlert) {
+            Button("Keep Going", role: .cancel) {}
+            Button("Discard Session", role: .destructive) {
+                dismiss()
+            }
+        } message: {
+            Text("This workout session will be deleted and not added to your journal.")
+                .accessibilityLabel("Warning: discarding will delete this workout session permanently")
         }
         .onAppear {
             viewModel.modelContext = modelContext

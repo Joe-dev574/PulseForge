@@ -3,43 +3,48 @@
 //  PulseForge
 //
 //  Created by Joseph DeWeese on 2/18/26.
+//  Updated: February 25, 2026
+//
+//  Apple App Store Compliance:
+//  - Manages top-level navigation flow based on authentication and onboarding state.
+//  - No sensitive data is processed here — all authentication is handled by AuthenticationManager.
+//  - Brief loading state shown while restoring session (required for smooth UX).
+//  - Full accessibility support with clear labels and hints.
+//  - Complies with App Review Guidelines 3.3.2 (Accessibility) and 5.1.1 (Data Handling).
 //
 
 import SwiftUI
 import SwiftData
 import OSLog
 
-
-/// This view manages the initial navigation flow based on user authentication and onboarding status.
-/// It uses a NavigationStack to handle transitions between authentication, onboarding, and the main workout list.
+/// The root view of PulseForge.
 ///
-/// - Important: Complies with Apple's accessibility and privacy guidelines:
-///   - All UI elements include accessibility labels and hints for VoiceOver support.
-///   - No sensitive data is processed here; authentication is handled via AuthenticationManager.
-///   - For App Review: Demonstrate smooth navigation from sign-in to main content, including loading states.
-/// - Privacy: No user data collection occurs in this view; relies on secure Apple ID login.
-/// - Note: Uses a brief loading delay to allow authentication restoration; adjust timing as needed for UX.
-
+/// This view controls the initial navigation flow:
+/// - Loading → Authentication → Onboarding → Main App (WorkoutListScreen)
+///
+/// It waits for `AuthenticationManager` to restore the user session before showing content.
 struct ContentView: View {
-    /// Environment-injected authentication manager for session state.
+    
+    // MARK: - Environment
+    
     @Environment(AuthenticationManager.self) private var auth
     
-    /// Logger for content view events and navigation debugging.
-    private let logger = Logger(subsystem: "com.tnt.PulseForge", category: "ContentView")
+    // MARK: - State
     
-    /// State to manage initial loading screen during auth check.
-    @State private var isLoading = true  // Added for brief auth check delay
+    /// Shows a loading indicator while the authentication state is being restored.
+    @State private var isLoading = true
     
-    @State private var isInitialLoad = true
+    // MARK: - Logger
     
+    private let logger = Logger(subsystem: "com.pulseforge.PulseForge", category: "ContentView")
+    
+    // MARK: - Body
     
     var body: some View {
-            NavigationStack {
-                if isInitialLoad {
-                    ProgressView("Initializing...")
-                        .controlSize(.large)
-                        .accessibilityLabel("App is loading your data and session")
-                        .accessibilityHint("Please wait a moment while we restore your authentication state")
+        NavigationStack {
+            Group {
+                if isLoading {
+                    loadingView
                 } else if !auth.isSignedIn {
                     AuthenticationView()
                 } else if auth.currentUser?.isOnboardingComplete != true {
@@ -48,25 +53,51 @@ struct ContentView: View {
                     WorkoutListScreen()
                 }
             }
-            .task {
-                // Perform one-time auth check & logging on appear
-                await checkAuthenticationState()
-            }
-         
         }
-        
-        private func checkAuthenticationState() async {
-            // Give auth manager a moment to restore session (usually very fast)
-            // No artificial delay needed in most cases — auth.isSignedIn should update reactively
-            
-            // Optional: if your AuthenticationManager has an async restore method, call it here
-            // await auth.restoreSessionIfNeeded()
-            
-            logger.info("ContentView appeared • Signed in: \(auth.isSignedIn) • Onboarding complete: \(auth.currentUser?.isOnboardingComplete ?? false)")
-            
-            // Smoothly transition away from loading (prevents flash if auth is instant)
-            withAnimation(.easeInOut(duration: 0.3)) {
-                isInitialLoad = false
-            }
+        .task {
+            await restoreAuthenticationState()
         }
     }
+    
+    // MARK: - Subviews
+    
+    private var loadingView: some View {
+        VStack(spacing: 20) {
+            ProgressView()
+                .controlSize(.large)
+                .tint(.blue)
+            
+            Text("Initializing PulseForge...")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.proBackground)
+        .accessibilityLabel("PulseForge is loading")
+        .accessibilityHint("Please wait while we restore your session")
+    }
+    
+    // MARK: - Private Methods
+    
+    /// Restores the authentication state and transitions away from the loading screen.
+    ///
+    /// This runs once when ContentView appears and ensures a smooth, non-flashing transition.
+    private func restoreAuthenticationState() async {
+        logger.info("ContentView appeared — Checking authentication state")
+        
+        // Give AuthenticationManager a moment to restore from shared defaults / SwiftData
+        // (Usually completes instantly, but we add a tiny safety delay for first launch)
+        try? await Task.sleep(for: .milliseconds(400))
+        
+        logger.info("""
+            Authentication check complete → 
+            Signed in: \(auth.isSignedIn) | 
+            Onboarding complete: \(auth.currentUser?.isOnboardingComplete ?? false)
+            """)
+        
+        // Smooth transition away from loading screen
+        withAnimation(.easeInOut(duration: 0.25)) {
+            isLoading = false
+        }
+    }
+}

@@ -137,29 +137,39 @@ public class PurchaseManager {
                 }
     
     private func refreshSubscriptionStatus() async {
+        #if DEBUG
+        // ── TEMPORARY FOR TESTING ──
+        // This forces premium ON while you're developing.
+        // Remove or comment this whole #if block before archiving for App Store.
+        isSubscribed = true
+        subscribedProductID = monthlyProductID
+        await syncPremiumStatusToAppGroup(true)
+        logger.info("DEBUG MODE: Premium forced ON for testing")
+        return
+        #else
+        // Real production check
         isSubscribed = false
-                subscribedProductID = nil
-                
-                for await result in Transaction.currentEntitlements {
-                    guard case .verified(let transaction) = result else {
-                        continue
-                    }
-                    
-                    if productIDs.contains(transaction.productID),
-                       let expirationDate = transaction.expirationDate,
-                       expirationDate > Date(),
-                       transaction.revocationDate == nil {
-                        isSubscribed = true
-                        subscribedProductID = transaction.productID
-                        await syncPremiumStatusToAppGroup(true)
-                        break
-                    }
-                }
-                
-                if !isSubscribed {
-                    await syncPremiumStatusToAppGroup(false)
-                }
+        subscribedProductID = nil
+        
+        for await result in Transaction.currentEntitlements {
+            guard case .verified(let transaction) = result else { continue }
+            
+            if productIDs.contains(transaction.productID),
+               let expirationDate = transaction.expirationDate,
+               expirationDate > Date(),
+               transaction.revocationDate == nil {
+                isSubscribed = true
+                subscribedProductID = transaction.productID
+                await syncPremiumStatusToAppGroup(true)
+                break
             }
+        }
+        
+        if !isSubscribed {
+            await syncPremiumStatusToAppGroup(false)
+        }
+        #endif
+    }
     
     /// Syncs premium status to App Group — only executed on iOS.
     /// The Watch reads this flag to enable full independent features.

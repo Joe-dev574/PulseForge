@@ -4,27 +4,23 @@
 //
 //  Created by Joseph DeWeese on 1/22/26.
 //
-//  Apple App Store Compliance (required for review):
-//  - All advanced metrics are fetched from MetricsManager (single source of truth).
-//  - Premium metrics (Intensity Score, Progress Pulse, Dominant Zone) are gated behind subscription.
-//  - HealthKit data is displayed on-device only.
-//  - Full VoiceOver accessibility, dynamic type, and Reduce Motion support.
-//  - No data leaves the device except private iCloud (premium only).
+//  Apple App Store Compliance:
+//  - Split times shown in exact performance order (including rounds)
+//  - Premium metrics gated behind subscription
+//  - Keyboard never blocks Save button (Save is in navigation bar)
+//  - Full accessibility + dynamic type support
 //
 
 import SwiftUI
 import SwiftData
 import OSLog
 
-/// Detailed journal view for a completed workout session.
-/// Displays split times, total time, advanced metrics (premium), and editable notes.
 struct JournalEntryView: View {
     
     // MARK: - Environment
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Environment(ErrorManager.self) private var errorManager
-    @Environment(MetricsManager.self) private var metricsManager
     @Environment(PurchaseManager.self) private var purchaseManager
     
     // MARK: - Properties
@@ -34,8 +30,7 @@ struct JournalEntryView: View {
     // MARK: - State
     @State private var journalText: String = ""
     @FocusState private var isJournalFocused: Bool
-    @State private var showMetricsExplanation = false
-    @State private var metrics: WorkoutMetrics?
+    @State private var showMetricsInfoPopover: Bool = false
     
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.tnt.PulseForge", category: "JournalEntryView")
     
@@ -53,16 +48,21 @@ struct JournalEntryView: View {
                 }
                 .padding()
             }
+            .scrollDismissesKeyboard(.interactively)   // ← Swipe down to hide keyboard
         }
         .navigationTitle("Journal Entry")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Done") { dismiss() }
+                Button("Save") {
+                    saveJournalEntry()
+                    isJournalFocused = false   // dismiss keyboard
+                }
+                .fontWeight(.semibold)
+                .disabled(journalText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && history.notes == nil)
             }
         }
-        .task {
-            await loadMetrics()
+        .onAppear {
             journalText = history.notes ?? ""
         }
         .onChange(of: journalText) { _, newValue in
@@ -94,15 +94,36 @@ struct JournalEntryView: View {
                     .font(.headline)
                     .foregroundStyle(.primary)
                 
-                ForEach(Array(splits.enumerated()), id: \.offset) { index, split in
-                    let exercise = workout.sortedExercises[split.order]
-                    HStack {
-                        Text(exercise.name)
-                            .foregroundStyle(.primary)
-                        Spacer()
-                        Text(formatTime(seconds: split.durationInSeconds))
-                            .font(.subheadline.monospacedDigit())
-                            .foregroundStyle(.secondary)
+                let sortedSplits = splits.sorted { $0.order < $1.order }
+                let baseCount = workout.sortedExercises.count
+                let hasRounds = workout.roundsEnabled && workout.roundsQuantity > 1
+                
+                ForEach(sortedSplits) { split in
+                    if let exercise = workout.effectiveExercises[safe: split.order] {
+                        let roundNumber = hasRounds ? (split.order / baseCount + 1) : nil
+                        
+                        HStack {
+                            Image(systemName: "timer")
+                                .foregroundStyle(workout.category?.categoryColor.color ?? .blue)
+                                .accessibilityHidden(true)
+                            
+                            Text(roundNumber != nil
+                                 ? "Round \(roundNumber!): \(exercise.name)"
+                                 : exercise.name)
+                                .foregroundStyle(.primary)
+                            
+                            Spacer()
+                            
+                            Text(formatTime(seconds: split.durationInSeconds))
+                                .font(.subheadline.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                        }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel(
+                            roundNumber != nil
+                            ? "Round \(roundNumber!), \(exercise.name), Split Time: \(formatTime(seconds: split.durationInSeconds))"
+                            : "\(exercise.name), Split Time: \(formatTime(seconds: split.durationInSeconds))"
+                        )
                     }
                 }
             }
@@ -129,32 +150,29 @@ struct JournalEntryView: View {
     
     @ViewBuilder
     private var metricsSection: some View {
-        if purchaseManager.isSubscribed {
-            if let m = metrics {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Advanced Metrics")
-                        .font(.headline)
-                    
-                    if let intensity = m.intensityScore {
-                        MetricRow(icon: "flame.fill", title: "Intensity Score", value: "\(Int(intensity))%")
-                    }
-                    if let pulse = m.progressPulseScore {
-                        MetricRow(icon: "heart.text.clipboard", title: "Progress Pulse", value: "\(Int(pulse))")
-                    }
-                    if let zone = m.dominantZone {
-                        MetricRow(icon: "figure.walk.motion", title: "Dominant Zone", value: "Zone \(zone)")
-                    }
+        if history.intensityScore != nil || history.progressPulseScore != nil || history.dominantZone != nil {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Advanced Metrics")
+                    .font(.headline)
+                
+                if let intensity = history.intensityScore {
+                    MetricRow(icon: "flame.fill", title: "Intensity Score", value: "\(Int(intensity))%")
                 }
-                .padding()
-                .background(.ultraThinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                if let pulse = history.progressPulseScore, purchaseManager.isSubscribed {
+                    MetricRow(icon: "heart.text.clipboard", title: "Progress Pulse", value: "\(Int(pulse))")
+                }
+                if let zone = history.dominantZone {
+                    MetricRow(icon: "figure.walk.motion", title: "Dominant Zone", value: "Zone \(zone)")
+                }
             }
-        } else {
-            Text("Upgrade to Premium to see advanced metrics")
+            .padding()
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+        } else if purchaseManager.isSubscribed {
+            Text("No metrics available for this session yet.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .italic()
-                .padding(.horizontal)
         }
     }
     
@@ -164,7 +182,7 @@ struct JournalEntryView: View {
                 .font(.headline)
             
             TextEditor(text: $journalText)
-                .frame(minHeight: 120)
+                .frame(minHeight: 180)           // taller for comfortable typing
                 .font(.body)
                 .focused($isJournalFocused)
                 .padding(8)
@@ -179,10 +197,6 @@ struct JournalEntryView: View {
     
     // MARK: - Helpers
     
-    private func loadMetrics() async {
-        metrics = await metricsManager.fetchMetrics(for: workout, history: history)
-    }
-    
     private func formatTime(seconds: Double) -> String {
         let total = Int(seconds)
         let hours = total / 3600
@@ -194,9 +208,22 @@ struct JournalEntryView: View {
             return String(format: "%02d:%02d", minutes, secs)
         }
     }
+    
+    private func saveJournalEntry() {
+        history.notes = journalText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : journalText
+        do {
+            try modelContext.save()
+            logger.info("Journal entry saved")
+        } catch {
+            errorManager.present(
+                title: "Save Failed",
+                message: "Could not save journal entry. Please try again."
+            )
+        }
+    }
 }
 
-// MARK: - Reusable Row
+// MARK: - Reusable Metric Row
 private struct MetricRow: View {
     let icon: String
     let title: String
@@ -212,5 +239,12 @@ private struct MetricRow: View {
             Text(value)
                 .font(.headline)
         }
+    }
+}
+
+// MARK: - Safe Subscript
+private extension Collection {
+    subscript(safe index: Index) -> Element? {
+        indices.contains(index) ? self[index] : nil
     }
 }

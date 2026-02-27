@@ -15,7 +15,7 @@ import SwiftUI
 /// Conforms to `CaseIterable` and `Identifiable` for SwiftUI picker compatibility.
 enum AppearanceSetting: String, CaseIterable, Identifiable {
     /// Follows the system’s light or dark mode.
-    case system = "System Default"
+    case system = "System"
     /// Forces light mode.
     case light = "Light Mode"
     /// Forces dark mode.
