@@ -180,44 +180,40 @@ struct WorkoutDetailView: View {
     
     private var summarySection: some View {
         Section {
-            if let fastestTime = workout.fastestTime, fastestTime > 0 {
-                let formattedFastest = formatDuration(fastestTime * 60)
-                HStack {
-                    Image(systemName: "star.fill")
-                        .foregroundStyle(.yellow)
-                        .accessibilityHidden(true)
-                    Text("Fastest Time:")
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(formattedFastest)
-                        .foregroundStyle(.primary)
-                }
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel("Fastest Time: \(formattedFastest)")
-            } else {
-                HStack {
-                    Image(systemName: "star")
-                        .foregroundStyle(.gray)
-                        .accessibilityHidden(true)
-                    Text("No time recorded yet")
-                        .italic()
-                        .foregroundStyle(.secondary)
-                }
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel("No fastest time recorded")
-            }
-            
             if let summary = workout.generatedSummary, !summary.isEmpty {
-                Text(summary)
-                    .font(.body)
-                    .foregroundStyle(.primary)
-                    .accessibilityLabel("Workout summary: \(summary)")
+                // Parse lines into individual stat rows
+                let lines = summary.components(separatedBy: "\n").filter { !$0.isEmpty }
+                ForEach(lines.indices, id: \.self) { i in
+                    Text(lines[i])
+                        .font(i == 0 ? .subheadline.weight(.semibold) : .subheadline)
+                        .foregroundStyle(i == 0 ? .primary : .secondary)
+                        .fontDesign(.serif)
+                        .accessibilityLabel(lines[i])
+                }
             } else {
                 Text("Complete at least one workout to generate a summary.")
                     .font(.subheadline)
                     .italic()
                     .foregroundStyle(.secondary)
                     .accessibilityLabel("No workout summary available")
+            }
+
+            // Fastest time gets its own prominent row
+            if let fastestTime = workout.fastestTime, fastestTime > 0 {
+                let formatted = formatDuration(fastestTime * 60)
+                HStack {
+                    Image(systemName: "star.fill")
+                        .foregroundStyle(.yellow)
+                        .accessibilityHidden(true)
+                    Text("Personal Best")
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(formatted)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.primary)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Personal best: \(formatted)")
             }
         } header: {
             Text("Workout Summary")

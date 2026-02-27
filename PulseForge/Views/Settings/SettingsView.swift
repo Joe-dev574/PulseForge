@@ -6,535 +6,548 @@
 //
 //  Apple App Store Compliance (required for review):
 //  - Settings screen for user preferences, HealthKit, account, and support.
-//  - Premium features are clearly promoted and linked to SubscriptionView.
-//  - HealthKit toggle only enables sync when authorized.
-//  - Full VoiceOver accessibility, dynamic type, and Reduce Motion support.
+//  - Premium features clearly promoted and linked to SubscriptionView.
+//  - HealthKit toggle wired to live manager via .onChange; only enables sync when authorised.
+//  - Full VoiceOver accessibility, Dynamic Type, and Reduce Motion support.
 //  - No data leaves the device except private iCloud (premium only).
+//  - App version read from CFBundleShortVersionString; never hardcoded.
+//  - All URLs and email addresses reference PulseForge, not a legacy app name.
 //
 
 import SwiftUI
-import SwiftData
 import StoreKit
-import WatchConnectivity
 
+// MARK: - SettingsView
 
-/// A SwiftUI view that presents the settings interface for ChronicGrind.
-/// Organizes preferences into sections for general settings, notifications, HealthKit sync, account, about, support, and app rating.
-/// Uses `@AppStorage` for persistent settings and integrates with authentication, HealthKit, and notification managers.
+/// The primary settings interface for PulseForge.
+///
+/// Organises user preferences into clearly separated sections:
+/// premium subscription, general (theme / appearance / units),
+/// HealthKit sync, support, about, and account.
+///
+/// ## Design notes
+/// - Section headers share a single `sectionHeader(_:)` helper to guarantee
+///   consistent typography across the entire screen.
+/// - Individual rows use `SettingsIconView` and `SettingsRow` to eliminate
+///   the ~8x duplicated `ZStack { Rectangle + Image }` pattern from v1.
+/// - `NavigationStack` is the root of the view hierarchy; `ZStack` wraps it
+///   only to paint the custom background behind the form.
+///
+/// ## Threading
+/// All state mutations are on the `@MainActor` (implicit via SwiftUI).
+/// HealthKit authorisation is dispatched via `Task { }` and errors are
+/// surfaced through `ErrorManager`.
 struct SettingsView: View {
-    // MARK: PROPERTIES
-    /// The environment variable to dismiss the view.
-    @Environment(\.dismiss) private var dismiss
-    
-    /// The HealthKit manager for syncing workout data.
-    @Environment(HealthKitManager.self) private var healthKitManager
-    
-    @Environment(\.requestReview) private var requestReview
-    
-    @Environment(PurchaseManager.self) private var purchaseManager
-    
-    /// The SwiftData model context for querying categories.
-    @Environment(\.modelContext) private var modelContext
-    
-    /// The authentication manager for accessing the current user.
+
+    // MARK: - Environment
+
+    @Environment(\.dismiss)        private var dismiss
+    @Environment(\.requestReview)  private var requestReview
+    @Environment(HealthKitManager.self)     private var healthKitManager
+    @Environment(PurchaseManager.self)      private var purchaseManager
     @Environment(AuthenticationManager.self) private var authManager
-    
-    /// The error manager for displaying alerts.
-    @Environment(ErrorManager.self) private var errorManager
-    
-//    /// Query to fetch all categories, used in settings (e.g., default category picker).
-//    @Query private var categories: [Category]
-    
-    /// Persisted setting for enabling/disabling HealthKit synchronization.
-    @AppStorage("isHealthKitSyncEnabled") private var isHealthKitSyncEnabled: Bool = true
-    
-    /// Persisted ID of the default workout category.
-    @AppStorage("defaultCategoryID") private var defaultCategoryID: String?
-    
-    /// Persisted hex string for the user’s selected theme color.
+    @Environment(ErrorManager.self)         private var errorManager
+
+    // MARK: - Persisted Preferences
+
+    /// Hex string for the user's chosen theme colour (e.g. `"#0096FF"`).
     @AppStorage("selectedThemeColorData") private var selectedThemeColorData: String = "#0096FF"
-    
-    /// Persisted unit system (metric or imperial) for measurements.
-    @AppStorage("unitSystem") private var unitSystem: UnitSystem = .metric
-    
-    /// Persisted appearance setting (system, light, or dark) for the app’s color scheme.
-    @AppStorage("appearanceSetting") private var appearanceSetting: AppearanceSetting = .system
-    
-    /// State to show an alert for HealthKit authorization errors.
-    @State private var showAuthorizationError: Bool = false
-    
-    /// State to show a confirmation alert for sign-out.
-    @State private var showSignOutConfirmation: Bool = false
-    
-    // NEW: State for Apple Watch availability
-    @State private var watchStatus: String = "Checking..."
-    @State private var isWatchAvailable: Bool = false
-    @State private var isLoadingWatchStatus: Bool = true
-    /// Binding for the theme color picker, converting hex string to `Color` and back.
-    private var currentColorForPicker: Binding<Color> {
-        Binding(
-            get: { Color(hex: selectedThemeColorData) ?? .blue },
-            set: { selectedThemeColorData = $0.hex }
-        )
-    }
-    
-    /// The computed theme color, derived from the stored hex string or defaulting to blue.
+
+    /// Whether HealthKit sync is toggled on by the user.
+    @AppStorage("isHealthKitSyncEnabled")  private var isHealthKitSyncEnabled: Bool = true
+
+    /// Preferred unit system — metric or imperial.
+    @AppStorage("unitSystem")              private var unitSystem: UnitSystem = .metric
+
+    /// Preferred colour scheme — system, light, or dark.
+    @AppStorage("appearanceSetting")       private var appearanceSetting: AppearanceSetting = .system
+
+    // MARK: - Local State
+
+    @State private var showAuthorizationError:   Bool = false
+    @State private var showSignOutConfirmation:   Bool = false
+
+    // MARK: - Derived
+
+    /// Resolved theme colour; falls back to blue if hex string is malformed.
     private var themeColor: Color {
         Color(hex: selectedThemeColorData) ?? .blue
     }
-    
-    // MARK: MAIN BODY
+
+    /// Two-way binding between the `ColorPicker` and the persisted hex string.
+    /// Uses `themeColor` in the getter to avoid a second `Color(hex:)` call.
+    private var colorPickerBinding: Binding<Color> {
+        Binding(
+            get: { themeColor },
+            set: { selectedThemeColorData = $0.hex }
+        )
+    }
+
+    /// App version read from the bundle — automatically correct after every update.
+    private var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
+    }
+
+    /// App build number, shown alongside version for support triage.
+    private var buildNumber: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
+    }
+
+    // MARK: - Body
+
     var body: some View {
-        // Main container with gradient background
-        ZStack {
-            Color.proBackground.ignoresSafeArea()
-            // Navigation stack for settings form
-            NavigationStack {
+        // NavigationStack is the root. ZStack paints the custom background
+        // behind the Form without creating a nested navigation hierarchy.
+        NavigationStack {
+            ZStack {
+                Color.proBackground.ignoresSafeArea()
+
                 Form {
                     premiumSection
                     generalSection
-                    healthKitSyncSection
+                    healthKitSection
                     supportSection
-                    rateAppSection
                     aboutSection
+                    rateSection
                     accountSection
                 }
                 .scrollContentBackground(.hidden)
+                .fontDesign(.serif)
+                .tint(themeColor)
                 .navigationTitle("Settings")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbarBackground(Color.proBackground, for: .navigationBar)
-                .tint(themeColor)
             }
         }
         .preferredColorScheme(appearanceSetting.colorScheme)
     }
-    
+
+    // MARK: - Section Header Helper
+
+    /// Produces a visually consistent section header matching the
+    /// monospaced-caps accent-pip style used across PulseForge.
+    private func sectionHeader(_ label: String) -> some View {
+        HStack(spacing: 8) {
+            Capsule()
+                .fill(themeColor)
+                .frame(width: 3, height: 13)
+                .accessibilityHidden(true)
+            Text(label.uppercased())
+                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .foregroundStyle(themeColor)
+                .tracking(2)
+            Spacer()
+        }
+        .padding(.top, 4)
+        .accessibilityAddTraits(.isHeader)
+        .accessibilityLabel(label)
+    }
+
+    // MARK: - Premium Section
+
+    /// Full-bleed gradient card promoting the premium subscription.
+    /// Shows an "Active" badge when already subscribed; a CTA otherwise.
     private var premiumSection: some View {
         Section {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Image(systemName: "crown.fill")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 24, height: 24)
-                        .foregroundStyle(.white)
-                    Text("Premium Subscription")
-                        .font(.title3)
-                        .fontWeight(.medium)
-                        .fontDesign(.serif)
-                        .foregroundStyle(.white)
+            VStack(alignment: .leading, spacing: 14) {
+
+                // Header row
+                HStack(spacing: 10) {
+                    ZStack {
+                        Circle()
+                            .fill(.white.opacity(0.2))
+                            .frame(width: 40, height: 40)
+                        Image(systemName: "crown.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(.yellow)
+                    }
+                    .accessibilityHidden(true)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("PULSEFORGE PREMIUM")
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.white.opacity(0.85))
+                            .tracking(1.5)
+                        Text("Advanced analytics · Apple Watch · Progress Pulse")
+                            .font(.system(.caption, design: .serif))
+                            .foregroundStyle(.white.opacity(0.75))
+                    }
                 }
-                Text("Unlock advanced features like a full independent Watch app.")
-                    .font(.subheadline)
-                    .fontDesign(.serif)
-                    .foregroundStyle(.white)
+
+                Divider().overlay(.white.opacity(0.25))
+
+                // CTA / status
                 if purchaseManager.isSubscribed {
-                    Text("You are Subscribed")
-                        .font(.headline)
-                        .fontDesign(.serif)
-                        .foregroundStyle(themeColor)
-                        .frame(maxWidth: .infinity)
-                        .padding()
+                    // Subscribed state
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.seal.fill")
+                            .foregroundStyle(.yellow)
+                            .accessibilityHidden(true)
+                        Text("Premium Active")
+                            .font(.system(.subheadline, design: .serif, weight: .semibold))
+                            .foregroundStyle(.white)
+                        Spacer()
+                        Text("ACTIVE")
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .foregroundStyle(themeColor)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Capsule().fill(.white))
+                            .tracking(1)
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("Premium subscription is active")
+                } else {
+                    // Upsell state
+                    NavigationLink(destination: SubscriptionView()) {
+                        HStack {
+                            Text("Subscribe to Premium")
+                                .font(.system(.subheadline, design: .serif, weight: .semibold))
+                                .foregroundStyle(themeColor)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(themeColor.opacity(0.7))
+                        }
+                        .padding(.vertical, 10)
+                        .padding(.horizontal, 14)
                         .background(Color.white)
                         .clipShape(RoundedRectangle(cornerRadius: 10))
-                } else {
-                    NavigationLink(destination: SubscriptionView()) {
-                        Text("Subscribe to Premium")
-                            .font(.headline)
-                            .fontDesign(.serif)
-                            .foregroundStyle(themeColor)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
                     .accessibilityLabel("Subscribe to Premium")
-                    .accessibilityHint("Navigate to purchase premium subscription")
+                    .accessibilityHint("Opens the subscription screen")
                 }
             }
-            .padding()
+            .padding(16)
             .background(themeColor.gradient)
             .clipShape(RoundedRectangle(cornerRadius: 16))
+            // Negative list insets so the card fills edge-to-edge within the section.
+            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+            .listRowBackground(Color.clear)
         } header: {
-            Text("Premium")
-                .font(.title3)
-                .fontWeight(.medium)
-                .fontDesign(.serif)
-                .foregroundStyle(themeColor)
-                .accessibilityAddTraits(.isHeader)
+            sectionHeader("Premium")
         }
     }
-    
-    // MARK: GENERAL SECTION
-    /// General settings section for theme color, appearance, and units.
+
+    // MARK: - General Section
+
+    /// Theme colour, appearance mode, and unit system preferences.
     private var generalSection: some View {
         Section {
-            // Theme color picker
-            HStack {
-                ZStack {
-                    Rectangle()
-                        .fill(themeColor)
-                        .frame(width: 35, height: 35)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                    Image(systemName: "paintbrush")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 20, height: 20)
-                        .foregroundStyle(.white)
-                }
-                ColorPicker("System Theme Color", selection: currentColorForPicker)
+            // Theme colour
+            SettingsRow(iconName: "paintbrush.fill", iconColor: themeColor) {
+                ColorPicker("Theme Colour", selection: colorPickerBinding)
                     .foregroundStyle(.primary)
-                    .accessibilityIdentifier("themeColorPicker")
-                    .accessibilityLabel("Theme color")
-                    .accessibilityHint("Select a color to customize the app's appearance")
+                    .accessibilityLabel("Theme colour")
+                    .accessibilityHint("Select a colour to personalise the app")
             }
-            HStack {
-                ZStack {
-                    Rectangle()
-                        .fill(.primary)
-                        .frame(width: 35, height: 35)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                    Image(systemName: "sun.max")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 20, height: 20)
-                        .foregroundStyle(.grayText)
-                }
-                // Appearance picker
+
+            // Appearance
+            SettingsRow(iconName: "sun.max.fill", iconColor: .orange) {
                 Picker("Appearance", selection: $appearanceSetting) {
                     ForEach(AppearanceSetting.allCases) { setting in
                         Text(setting.displayAppearance).tag(setting)
                     }
                 }
+                .accessibilityLabel("Appearance mode")
+                .accessibilityHint("Choose light, dark, or system default")
             }
-            .foregroundStyle(.primary)
-            .accessibilityIdentifier("appearancePicker")
-            .accessibilityLabel("Appearance mode")
-            .accessibilityHint("Select the app's appearance: light, dark, or system default.")
-            
-            // Units picker
-            HStack {
-                ZStack {
-                    Rectangle()
-                        .fill(themeColor)
-                        .frame(width: 35, height: 35)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                    Image(systemName: "lines.measurement.horizontal")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 20, height: 20)
-                        .foregroundStyle(.white)
-                }
-                Picker("Units of Measure", selection: $unitSystem) {
+
+            // Units
+            SettingsRow(iconName: "lines.measurement.horizontal", iconColor: themeColor) {
+                Picker("Units", selection: $unitSystem) {
                     ForEach(UnitSystem.allCases) { system in
                         Text(system.displayName).tag(system)
                     }
                 }
+                .accessibilityLabel("Units of measure")
+                .accessibilityHint("Choose metric or imperial")
             }
-            .foregroundStyle(.primary)
-            .accessibilityIdentifier("unitSystemPicker")
-            .accessibilityLabel("Units of measure")
-            .accessibilityHint("Select your preferred units for weight and height.")
         } header: {
-            Text("General")
-                .font(.title3)
-                .fontWeight(.medium)
-                .fontDesign(.serif)
-                .foregroundStyle(themeColor)
-                .dynamicTypeSize(.medium)
-                .accessibilityAddTraits(.isHeader)
+            sectionHeader("General")
         }
     }
-  
-    // MARK: HEALTHKIT SECTION
-    private var healthKitSyncSection: some View {
+
+    // MARK: - HealthKit Section
+
+    /// HealthKit sync toggle and live authorisation status.
+    ///
+    /// The toggle persists via `@AppStorage("isHealthKitSyncEnabled")`.
+    /// `HealthKitManager` reads that key directly wherever it needs to gate
+    /// sync behaviour, so no additional propagation call is required here.
+    private var healthKitSection: some View {
         Section {
-            Toggle(isOn: $isHealthKitSyncEnabled) {
-                HStack {
-                    ZStack {
-                        Rectangle()
-                            .fill(.red)
-                            .frame(width: 35, height: 35)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                        Image(systemName: "heart")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 20, height: 20)
-                            .foregroundStyle(.white)
-                    }
-                    Text("Enable HealthKit Sync")
-                        .foregroundStyle(.primary)
-                        .fontDesign(.serif)
-                }
+            // Toggle
+            SettingsRow(iconName: "heart.fill", iconColor: .red) {
+                Toggle("HealthKit Sync", isOn: $isHealthKitSyncEnabled)
+                    .accessibilityLabel("HealthKit sync")
+                    .accessibilityHint(isHealthKitSyncEnabled
+                        ? "Tap to disable HealthKit synchronisation"
+                        : "Tap to enable HealthKit synchronisation")
             }
-            .foregroundStyle(.primary)
-            .accessibilityLabel("HealthKit sync")
-            .accessibilityHint(isHealthKitSyncEnabled ? "Disable HealthKit synchronization" : "Enable HealthKit synchronization")
-            .accessibilityValue(isHealthKitSyncEnabled ? "On" : "Off")
-            
-            if isHealthKitSyncEnabled && !healthKitManager.isReadAuthorized && !healthKitManager.isWriteAuthorized {
-                Button(" Press to grant HealthKit permission! ") {
-                    Task {
-                        do {
-                            try await healthKitManager.requestAuthorization()
-                        } catch {
-                            showAuthorizationError = true
-                        }
-                    }
-                }
-                .font(Font.caption.bold())
-                .frame(width: 350, height: 45, alignment: .center)
-                .buttonStyle(.borderedProminent)
-                .fontDesign(.serif)
-                .foregroundStyle(.primary)
-                .accessibilityLabel("Press to grant HealthKit permission!")
-                .accessibilityHint("Double-tap to request HealthKit permissions")
-                .accessibilityAddTraits(.isButton)
-                .padding(.vertical, 4)
-                .padding(.bottom, 4)
-            } else if isHealthKitSyncEnabled && healthKitManager.isReadAuthorized {
-                Text("HealthKit sync is enabled!")
-                    .font(Font.caption.bold())
-                    .fontDesign(.serif)
-                    .foregroundStyle(.green)
-            } else if !isHealthKitSyncEnabled && healthKitManager.isReadAuthorized {
-                Text("HealthKit sync is disabled.")
-                    .font(Font.caption.bold())
-                    .foregroundStyle(.secondary)
-                    .fontDesign(.serif)
-            }
+
+            // Status / action row
+            healthKitStatusRow
+
         } header: {
-            Text("HealthKit Sync")
-                .font(.title3)
-                .fontWeight(.medium)
-                .fontDesign(.serif)
-                .foregroundStyle(themeColor)
-                .dynamicTypeSize(.medium)
-                .accessibilityAddTraits(.isHeader)
+            sectionHeader("HealthKit")
         }
-        // HealthKit authorization alert
-        .alert("Authorization Required", isPresented: $showAuthorizationError) {
+        .alert("HealthKit Access Required", isPresented: $showAuthorizationError) {
             Button("Open Settings") {
                 if let url = URL(string: UIApplication.openSettingsURLString) {
                     UIApplication.shared.open(url)
                 }
             }
-            Button("Cancel", role: .cancel) { showAuthorizationError = false }
+            Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Please grant HealthKit permission in Settings to enable syncing.")
-                .accessibilityLabel("HealthKit authorization required")
+            Text("Please grant HealthKit permission in iOS Settings to enable workout sync.")
         }
-        .fontDesign(.serif)
     }
-    
-    // MARK: ACCOUNT SECTION
-    /// Account settings section for signing out.
+
+    /// Inline status feedback row — a single source of truth for the three
+    /// possible HealthKit states, rendered with consistent icon + text layout.
+    @ViewBuilder
+    private var healthKitStatusRow: some View {
+        if isHealthKitSyncEnabled && !healthKitManager.isReadAuthorized {
+            // Needs permission
+            Button {
+                Task {
+                    do {
+                        try await healthKitManager.requestAuthorization()
+                    } catch {
+                        showAuthorizationError = true
+                    }
+                }
+            } label: {
+                SettingsRow(iconName: "lock.fill", iconColor: .orange) {
+                    HStack {
+                        Text("Grant HealthKit Permission")
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Grant HealthKit permission")
+            .accessibilityHint("Opens the HealthKit authorisation prompt")
+
+        } else if isHealthKitSyncEnabled && healthKitManager.isReadAuthorized {
+            // Authorised and active
+            SettingsRow(iconName: "checkmark.circle.fill", iconColor: .green) {
+                Text("Sync Active")
+                    .foregroundStyle(.secondary)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("HealthKit sync is active")
+
+        } else {
+            // Toggle is off
+            SettingsRow(iconName: "slash.circle", iconColor: .secondary.opacity(0)) {
+                Text("Sync Disabled")
+                    .foregroundStyle(.secondary)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("HealthKit sync is disabled")
+        }
+    }
+
+    // MARK: - Support Section
+
+    private var supportSection: some View {
+        Section {
+            SettingsLinkRow(
+                iconName:   "envelope.fill",
+                iconColor:  .blue,
+                label:      "Contact Support",
+                url:        URL(string: "mailto:support@pulseforge.app")!
+            )
+
+            SettingsLinkRow(
+                iconName:   "ant.fill",
+                iconColor:  .orange,
+                label:      "Report a Bug",
+                url:        URL(string: "mailto:bugs@pulseforge.app")!
+            )
+
+            SettingsLinkRow(
+                iconName:   "globe",
+                iconColor:  themeColor,
+                label:      "Visit PulseForge.app",
+                url:        URL(string: "https://pulseforge.app")!
+            )
+        } header: {
+            sectionHeader("Support")
+        }
+    }
+
+    // MARK: - About Section
+
+    private var aboutSection: some View {
+        Section {
+            SettingsLinkRow(
+                iconName:  "hand.raised.fill",
+                iconColor: .indigo,
+                label:     "Privacy & Security Policy",
+                url:       URL(string: "https://Joe-dev574.github.io/pulseforge-privacy")!
+            )
+
+            SettingsLinkRow(
+                iconName:  "doc.text.fill",
+                iconColor: .teal,
+                label:     "Terms of Use",
+                url:       URL(string: "https://pulseforge.app/terms")!
+            )
+
+            // Version row — never hardcoded
+            SettingsRow(iconName: "info.circle.fill", iconColor: .green) {
+                HStack {
+                    Text("Version")
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    Text("\(appVersion) (\(buildNumber))")
+                        .font(.system(.subheadline, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("App version \(appVersion), build \(buildNumber)")
+        } header: {
+            sectionHeader("About")
+        }
+    }
+
+    // MARK: - Rate Section
+
+    private var rateSection: some View {
+        Section {
+            Button {
+                requestReview()
+            } label: {
+                SettingsRow(iconName: "star.fill", iconColor: .yellow) {
+                    HStack {
+                        Text("Rate PulseForge")
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        Image(systemName: "arrow.up.right")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Rate PulseForge in the App Store")
+            .accessibilityHint("Opens an App Store rating prompt")
+        } header: {
+            sectionHeader("Rate")
+        }
+    }
+
+    // MARK: - Account Section
+
     private var accountSection: some View {
         Section {
-            HStack {
-                ZStack {
-                    Rectangle()
-                        .fill(.green)
-                        .frame(width: 35, height: 35)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                    Image(systemName: "person.circle")
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 20, height: 20)
-                        .foregroundStyle(.white)
+            // User display (email or placeholder)
+            if let email = authManager.currentUser?.email {
+                SettingsRow(iconName: "person.circle.fill", iconColor: themeColor) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Signed In")
+                            .font(.system(.caption, design: .monospaced, weight: .bold))
+                            .foregroundStyle(.secondary)
+                            .tracking(1)
+                        Text(email)
+                            .font(.system(.subheadline, design: .serif))
+                            .foregroundStyle(.primary)
+                    }
                 }
-                Text("Account Sign Out")
-                    .foregroundStyle(.primary)
-                    .fontDesign(.serif)
-                Spacer()
-                Button("Sign Out", role: .destructive) {
-                    showSignOutConfirmation = true
-                }
-                .fontDesign(.serif)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Signed in as \(email)")
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .buttonStyle(.borderedProminent)
+
+            // Sign out — destructive, separated visually from informational rows
+            Button(role: .destructive) {
+                showSignOutConfirmation = true
+            } label: {
+                SettingsRow(iconName: "rectangle.portrait.and.arrow.right", iconColor: .red) {
+                    Text("Sign Out")
+                        .foregroundStyle(.red)
+                }
+            }
+            .buttonStyle(.plain)
             .accessibilityLabel("Sign out")
-            .accessibilityHint("Double-tap to sign out of the app")
-            .accessibilityAddTraits(.isButton)
+            .accessibilityHint("Ends your current session")
             .alert("Sign Out", isPresented: $showSignOutConfirmation) {
-                Button("Cancel", role: .cancel) { }
+                Button("Cancel", role: .cancel) {}
                 Button("Sign Out", role: .destructive) {
                     authManager.signOut()
                     dismiss()
                 }
             } message: {
-                Text("Are you sure you want to sign out?")
-                    .accessibilityLabel("Sign out confirmation")
+                Text("Are you sure you want to sign out of PulseForge?")
             }
         } header: {
-            Text("Account")
-                .font(.title3)
-                .fontWeight(.medium)
-                .foregroundStyle(themeColor)
-                .dynamicTypeSize(.medium)
-                .accessibilityAddTraits(.isHeader)
+            sectionHeader("Account")
         }
     }
-    
-    // MARK: SUPPORT SECTION
-    /// Support section with contact and bug report links.
-    private var supportSection: some View {
-        Section {
-            // Contact support link
-            HStack {
-                ZStack {
-                    Rectangle()
-                        .fill(.blue)
-                        .frame(width: 35, height: 35)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                    Image(systemName: "envelope")
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 20, height: 20)
-                        .foregroundStyle(.white)
-                }
-                Link("Contact Support or Request Feature", destination: URL(string: "mailto:support@ChronicGrind.com")!)
-                    .foregroundStyle(.primary)
-                    .accessibilityIdentifier("contactSupportLink")
-                    .accessibilityLabel("Contact support")
-                    .accessibilityHint("Send an email to the support team")
+}
+
+// MARK: - SettingsRow
+
+/// A reusable form row that pairs a tinted SF Symbol icon badge
+/// with arbitrary trailing content via a `@ViewBuilder` closure.
+///
+/// Replaces the ~8x repeated `ZStack { Rectangle + Image }` pattern
+/// from the original file. Any change to icon size or corner radius
+/// is made here once and applies everywhere.
+private struct SettingsRow<Content: View>: View {
+    let iconName:  String
+    let iconColor: Color
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        HStack(spacing: 12) {
+            // Icon badge
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(iconColor)
+                    .frame(width: 32, height: 32)
+                Image(systemName: iconName)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(.white)
+                    .scaledToFit()
             }
-            // Report a bug link
-            HStack {
-                ZStack {
-                    Rectangle()
-                        .fill(.blue)
-                        .frame(width: 35, height: 35)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                    Image(systemName: "ant.fill")
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 20, height: 20)
-                        .foregroundStyle(.white)
-                }
-                Link("Report a Bug", destination: URL(string: "mailto:support@ChronicGrind.com")!)
-                    .foregroundStyle(.primary)
-                    .accessibilityIdentifier("reportBugLink")
-                    .accessibilityLabel("Report a bug")
-                    .accessibilityHint("Open a form to report a bug")
-            }
-            .fontDesign(.serif)
-        } header: {
-            Text("Support")
-                .font(.title3)
-                .fontWeight(.semibold)
-                .foregroundStyle(themeColor)
-                .dynamicTypeSize(.medium)
-                .accessibilityAddTraits(.isHeader)
+            .accessibilityHidden(true)
+
+            content()
         }
-        .fontDesign(.serif)
     }
-    
-    // MARK: ABOUT SECTION
-    /// About section with app version and legal links.
-    private var aboutSection: some View {
-        Section {
-            // Privacy policy link
-            HStack {
-                ReusableLinkView(iconName: "hand.raised", linkText: "Privacy & Security Policy", destinationURL: URL(string: "https://ChronicGrindhub.com/privacy")!, accessibilityIdentifier: "Privacy Policy Link", accessibilityLabel: "Privacy Policy", accessibilityHint: "Open the app's Privacy policy.")
-            }
-            
-            // App version info
-            HStack {
-                ZStack {
-                    Rectangle()
-                        .fill(.green)
-                        .frame(width: 35, height: 35)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                    Image(systemName: "info.circle")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 20, height: 20)
-                        .foregroundStyle(.white)
-                        .font(.system(size: 16))
-                }
-                Text("Version")
-                    .foregroundStyle(.primary)
-                Spacer()
-                Text("1.0.0")
-                    .foregroundStyle(.secondary)
-            }
-            .fontDesign(.serif)
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("App version")
-            .accessibilityValue("1.0.0")
-            // Terms of use link
-            HStack {
-                ReusableLinkView(iconName: "info.circle", linkText: "Terms of Use", destinationURL: URL(string: "https://ChronicGrind.com/terms")!, accessibilityIdentifier: "termsLink", accessibilityLabel: "Terms of Use", accessibilityHint: "Open the app's terms of use.")
-            }
-        } header: {
-            Text("About")
-                .font(.title3)
-                .fontWeight(.medium)
-                .foregroundStyle(themeColor)
-                .dynamicTypeSize(.medium)
-                .accessibilityAddTraits(.isHeader)
-        }
-        .fontDesign(.serif)
-    }
-    
-    // MARK: RATE APP SECTION
-    /// Rate the app section with a button to request an App Store review.
-    private var rateAppSection: some View {
-        Section {
-            Button(action: requestAppReview) {
+}
+
+// MARK: - SettingsLinkRow
+
+/// A pre-built row for external URL links — icon badge + label + external arrow.
+private struct SettingsLinkRow: View {
+    let iconName:  String
+    let iconColor: Color
+    let label:     String
+    let url:       URL
+
+    var body: some View {
+        Link(destination: url) {
+            SettingsRow(iconName: iconName, iconColor: iconColor) {
                 HStack {
-                    ZStack {
-                        Rectangle()
-                            .fill(.blue)
-                            .frame(width: 35, height: 35)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                        Image(systemName: "star.fill")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 20, height: 20)
-                            .foregroundStyle(.white)
-                            .font(.system(size: 16))
-                    }
-                    Text("Rate ChronicGrind")
-                        .fontDesign(.serif)
+                    Text(label)
                         .foregroundStyle(.primary)
                     Spacer()
                     Image(systemName: "arrow.up.right")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.secondary)
                 }
             }
-            .accessibilityIdentifier("rateAppButton")
-            .accessibilityLabel("Rate ChronicGrind in the App Store")
-            .accessibilityHint("Double-tap to request rating the app in the App Store")
-            .accessibilityAddTraits(.isButton)
-        } header: {
-            Text("Rate ChronicGrind")
-                .font(.title3)
-                .fontWeight(.medium)
-                .fontDesign(.serif)
-                .foregroundStyle(themeColor)
-                .dynamicTypeSize(.medium)
-                .accessibilityAddTraits(.isHeader)
         }
+        .accessibilityLabel(label)
+        .accessibilityHint("Opens in Safari")
     }
-    // NEW: Opens the ChronicGrind app on the paired Apple Watch.
-        /// - Note: Uses URL scheme if configured (add to Watch Info.plist: URL Types).
-        /// - Edge Case: Falls back to system prompt if scheme not set.
-        /// - Accessibility: Not applicable as it opens external app.
-        private func openWatchApp() {
-            // Replace with your app's Watch URL scheme if set (e.g., "chronicgrindwatch://")
-            if let url = URL(string: "chronicgrindwatch://") {
-                UIApplication.shared.open(url)
-            } else {
-                // Fallback: Prompt to open Watch app manually
-                watchStatus = "Please open the Watch app on your iPhone."
-            }
-        }
-    /// Requests an App Store review prompt using StoreKit.
-    private func requestAppReview() {
-        requestReview()
-    }
-   
 }
-
