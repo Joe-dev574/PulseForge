@@ -238,7 +238,7 @@ struct SettingsView: View {
             SettingsRow(iconName: "paintbrush.fill", iconColor: themeColor) {
                 ColorPicker("Theme Colour", selection: colorPickerBinding)
                     .foregroundStyle(.primary)
-                    .accessibilityLabel("Theme colour")
+                    .accessibilityLabel("Theme color")
                     .accessibilityHint("Select a colour to personalise the app")
             }
 

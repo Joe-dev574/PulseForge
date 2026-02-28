@@ -22,9 +22,13 @@ public final class PulseForgeContainer {
    
     /// The shared ModelContainer instance, lazily initialized with the app's schema and configuration.
     public static let container: ModelContainer = {
+        
         // Retrieve premium status from shared UserDefaults
         let appGroupDefaults = UserDefaults(suiteName: "group.com.tnt.PulseForge") ?? .standard
         let isPremium = appGroupDefaults.bool(forKey: "isPremium")
+        
+        // Define an explicit version (start with 1.0.0 for your initial release)
+                let schemaVersion = Schema.Version(1, 0, 0)  // Major.minor.patch
         
         // Define the schema with all @Model entities
         let schema = Schema([

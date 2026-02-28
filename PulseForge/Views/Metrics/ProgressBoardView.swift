@@ -215,8 +215,10 @@ struct ProgressBoardView: View {
     @State private var avgWorkoutsPerWeekLast90Days:     Double = 0.0
     @State private var distinctActiveDaysLast90Days:     Int    = 0
 
-    @State private var latestCategoryMetrics: [String: WorkoutMetrics] = [:]
-    @State private var isLoading:             Bool = true
+    @State private var latestCategoryMetrics:  [String: WorkoutMetrics] = [:]
+    @State private var isLoading:              Bool = true
+    @State private var showPremiumTeaser:      Bool = false
+    @State private var showMetricsExplanation: Bool = false
 
     // MARK: Private
 
@@ -252,6 +254,16 @@ struct ProgressBoardView: View {
             .toolbar { doneButton }
             .refreshable { await refreshBoard() }
             .onAppear { Task { await initializeBoard() } }
+            .sheet(isPresented: $showPremiumTeaser) {
+                NavigationStack {
+                    PremiumTeaserView()
+                }
+                .environment(purchaseManager)
+                .environment(errorManager)
+            }
+            .sheet(isPresented: $showMetricsExplanation) {
+                AdvancedMetricsExplanationView()
+            }
         }
     }
 
@@ -430,7 +442,7 @@ struct ProgressBoardView: View {
     @ViewBuilder
     private var premiumOrTeaserSection: some View {
         if purchaseManager.isSubscribed {
-            metricsSection
+        metricsSection
         } else {
             premiumTeaserCard
         }
@@ -438,7 +450,27 @@ struct ProgressBoardView: View {
 
     private var metricsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("LATEST METRICS BY CATEGORY")
+            HStack(spacing: 8) {
+                Capsule()
+                    .fill(themeColor)
+                    .frame(width: 3, height: 13)
+                    .accessibilityHidden(true)
+                Text("LATEST METRICS BY CATEGORY")
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundStyle(themeColor)
+                    .tracking(2)
+                    .padding(.trailing, 15)
+                Button {
+                    showMetricsExplanation = true
+                } label: {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 14))
+                        .foregroundStyle(themeColor.opacity(0.75))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Learn how advanced metrics are calculated")
+            }
+            .accessibilityAddTraits(.isHeader)
 
             if latestCategoryMetrics.isEmpty {
                 Text("Complete more workouts to see advanced metrics.")
@@ -484,7 +516,7 @@ struct ProgressBoardView: View {
             }
 
             Button {
-                // Opens subscription flow
+                showPremiumTeaser = true
             } label: {
                 Text("SUBSCRIBE NOW")
                     .font(.system(size: 11, weight: .bold, design: .monospaced))
