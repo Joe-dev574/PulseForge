@@ -101,6 +101,9 @@ struct ProfileView: View {
     @State private var showHealthKitResultAlert: Bool = false
     @State private var healthKitResultTitle:     String = ""
     @State private var healthKitResultMessage:   String = ""
+    @State private var progressSelfies:         [ProgressSelfie] = []
+    @State private var selectedSelfieItem:      PhotosPickerItem?
+    @State private var expandedSelfieID:        UUID?
 
     // MARK: - Derived
 
@@ -222,6 +225,7 @@ struct ProfileView: View {
                         healthKitStatusSection
                         personalInfoSection
                         healthMetricsSection
+                        selfieProgressSection
 
                         Spacer(minLength: 48)
                     }
@@ -288,6 +292,17 @@ struct ProfileView: View {
                    let optimized = ImageOptimizer.optimize(imageData: data) {
                     profileImageData = optimized
                     hasChanges = true
+                }
+            }
+        }
+        .onChange(of: selectedSelfieItem) { _, newItem in
+            Task {
+                if let data = try? await newItem?.loadTransferable(type: Data.self),
+                   let optimized = ImageOptimizer.optimize(imageData: data) {
+                    let selfie = ProgressSelfie(imageData: optimized)
+                    progressSelfies.append(selfie)
+                    hasChanges = true
+                    selectedSelfieItem = nil
                 }
             }
         }
@@ -745,6 +760,108 @@ struct ProfileView: View {
         }
     }
 
+    // MARK: - Selfie Progress Section
+
+    private var selfieProgressSection: some View {
+        profileSection(header: "Selfie Progress") {
+            VStack(spacing: 0) {
+                // Add selfie row
+                PhotosPicker(selection: $selectedSelfieItem, matching: .images) {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(themeColor)
+                                .frame(width: 32, height: 32)
+                            Image(systemName: "camera.fill")
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(.white)
+                        }
+                        .accessibilityHidden(true)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Take a Progress Selfie")
+                                .font(.system(.subheadline, design: .serif))
+                                .foregroundStyle(.primary)
+                            Text("TRACK YOUR PHYSICAL CHANGES")
+                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .tracking(1)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundStyle(themeColor)
+                            .accessibilityHidden(true)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 13)
+                    .frame(minHeight: 44)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Add a progress selfie")
+                .accessibilityHint("Opens the photo picker to choose a progress photo")
+
+                if !progressSelfies.isEmpty {
+                    Divider()
+                        .padding(.leading, 60)
+                        .accessibilityHidden(true)
+
+                    // Selfie grid
+                    LazyVGrid(
+                        columns: [
+                            GridItem(.flexible(), spacing: 10),
+                            GridItem(.flexible(), spacing: 10),
+                            GridItem(.flexible(), spacing: 10)
+                        ],
+                        spacing: 10
+                    ) {
+                        ForEach(progressSelfies) { selfie in
+                            selfieCard(selfie)
+                        }
+                    }
+                    .padding(14)
+                }
+            }
+        }
+    }
+
+    /// A single selfie thumbnail with date stamp. Taps to expand; long-press to delete.
+    private func selfieCard(_ selfie: ProgressSelfie) -> some View {
+        VStack(spacing: 6) {
+            if let uiImage = UIImage(data: selfie.imageData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(height: expandedSelfieID == selfie.id ? 240 : 110)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .onTapGesture {
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            expandedSelfieID = expandedSelfieID == selfie.id ? nil : selfie.id
+                        }
+                    }
+                    .accessibilityLabel("Progress selfie from \(selfie.displayName)")
+                    .accessibilityHint("Tap to expand, long press to delete")
+            }
+
+            // Date stamp
+            Text(selfie.dateAdded, format: .dateTime.month(.abbreviated).day().year())
+                .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                .foregroundStyle(.secondary)
+        }
+        .contextMenu {
+            Button(role: .destructive) {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    progressSelfies.removeAll { $0.id == selfie.id }
+                    hasChanges = true
+                }
+            } label: {
+                Label("Delete Selfie", systemImage: "trash")
+            }
+        }
+    }
+
     // MARK: - Layout Primitives
 
     /// Monospaced unit suffix (kg, bpm, yrs…).
@@ -868,6 +985,7 @@ struct ProfileView: View {
         biologicalSexString  = metrics.biologicalSexString
         fitnessGoal          = metrics.fitnessGoal ?? "General Fitness"
         profileImageData     = metrics.profileImageData
+        progressSelfies      = metrics.progressSelfies
     }
 
     /// Silent background fetch on `.onAppear` — fills empty fields only,
@@ -1003,6 +1121,7 @@ struct ProfileView: View {
         metrics.biologicalSexString = biologicalSexString
         metrics.fitnessGoal         = fitnessGoal
         metrics.profileImageData    = profileImageData
+        metrics.progressSelfies     = progressSelfies
 
         do {
             try modelContext.save()
