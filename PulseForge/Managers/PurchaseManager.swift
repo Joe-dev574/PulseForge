@@ -43,9 +43,14 @@ public class PurchaseManager {
     private var transactionListenerTask: Task<Void, Never>?
     
     private init() {
-        Task {
-            await refresh()
-        }
+        // Intentionally empty — heavy StoreKit work is deferred to start()
+        // so the first frame can render without blocking on network I/O.
+    }
+
+    /// Call once from a `.task` modifier after the UI is on screen.
+    /// Loads products, checks entitlements, and starts the transaction listener.
+    func start() async {
+        await refresh()
         listenForTransactions()
     }
     @MainActor

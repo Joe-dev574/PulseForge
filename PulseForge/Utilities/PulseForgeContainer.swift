@@ -31,15 +31,16 @@ public final class PulseForgeContainer {
                 let schemaVersion = Schema.Version(1, 0, 0)  // Major.minor.patch
         
         // Define the schema with all @Model entities
-        let schema = Schema([
-            User.self,
-            HealthMetrics.self,
-            Category.self,
-            Workout.self,
-            SplitTime.self,
-            History.self,
-            Exercise.self
-        ])
+        let schema = Schema(
+            [
+                User.self,
+                HealthMetrics.self,
+                Category.self,
+                Workout.self,
+                SplitTime.self,
+                History.self,
+                Exercise.self
+            ], version: schemaVersion)
         
         let fileManager = FileManager.default
         guard let groupURL = fileManager.containerURL(forSecurityApplicationGroupIdentifier: "group.com.tnt.PulseForge") else {

@@ -111,31 +111,26 @@ final class AuthenticationManager {
                 }
             }
         }
-    /// Completes the sign-in process by setting the current user and persisting session data.
+    /// Completes the sign-in process by setting the current user and persisting the session.
     ///
-    /// Also auto-completes onboarding for new users to streamline the experience.
+    /// New users are left with `isOnboardingComplete == false` so that `ContentView`
+    /// routes them through `OnboardingFlowView` naturally.
+    /// `OnboardingFlowView` is responsible for setting `isOnboardingComplete = true`
+    /// when the user finishes the flow.
     ///
     /// - Parameter user: The User object to sign in.
     func completeSignIn(with user: User) {
         self.currentUser = user
-        
-        // Persist Apple User ID to shared App Group for session restoration
+
+        // Persist Apple User ID to shared App Group for session restoration.
         sharedDefaults?.set(user.appleUserId, forKey: appleUserIDKey)
         logger.info("Apple User ID saved to shared defaults")
-        
-        // Auto-complete onboarding for fresh users
-        if !user.isOnboardingComplete {
-            user.isOnboardingComplete = true
-            // Optimization: Use context.save() directly instead of try? to handle errors properly in production
-            let context = ModelContext(modelContainer)
-            do {
-                try context.save()
-                logger.debug("Onboarding marked complete for new user")
-            } catch {
-                logger.error("Failed to save onboarding completion: \(error.localizedDescription)")
-                // In production, consider user-facing error handling or retry logic
-            }
-        }
+
+        // NOTE: Do NOT set isOnboardingComplete = true here.
+        // New users have isOnboardingComplete = false (the model default).
+        // ContentView will route them to OnboardingFlowView, which sets the
+        // flag to true on completion. Auto-completing it here bypassed onboarding entirely.
+        logger.debug("Sign-in complete for user \(user.appleUserId.prefix(8))… — onboarding state: \(user.isOnboardingComplete)")
     }
     
     /// Signs out the current user and clears session data.

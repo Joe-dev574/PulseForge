@@ -577,10 +577,10 @@ struct ProfileView: View {
             // The whole row is combined so VoiceOver reads "Biological Sex, [value], Picker"
             metricRow(icon: "person.fill", iconColor: themeColor, label: "Biological Sex") {
                 Picker("Biological Sex", selection: $biologicalSexString) {
-                    Text("Not Set").tag(String?.none)
-                    Text("Male").tag(String?.some("Male"))
-                    Text("Female").tag(String?.some("Female"))
-                    Text("Other").tag(String?.some("Other"))
+                    Text("Not Set").tag(nil as String?)
+                    Text("Male").tag("Male" as String?)
+                    Text("Female").tag("Female" as String?)
+                    Text("Other").tag("Other" as String?)
                 }
                 .labelsHidden()
                 .onChange(of: biologicalSexString) { _, _ in hasChanges = true }
@@ -616,11 +616,12 @@ struct ProfileView: View {
             // (longest option) never truncates on standard iPhone widths.
             metricRow(icon: "target", iconColor: themeColor, label: "Goal") {
                 Picker("Fitness goal", selection: $fitnessGoal) {
-                    Text("General Fitness").tag(String?.some("General Fitness"))
-                    Text("Weight Loss").tag(String?.some("Weight Loss"))
-                    Text("Muscle Gain").tag(String?.some("Muscle Gain"))
-                    Text("Endurance").tag(String?.some("Endurance"))
-                    Text("Other").tag(String?.some("Other"))
+                    Text("Not Set").tag(nil as String?)
+                    Text("General Fitness").tag("General Fitness" as String?)
+                    Text("Weight Loss").tag("Weight Loss" as String?)
+                    Text("Muscle Gain").tag("Muscle Gain" as String?)
+                    Text("Endurance").tag("Endurance" as String?)
+                    Text("Other").tag("Other" as String?)
                 }
                 .labelsHidden()
                 .onChange(of: fitnessGoal) { _, _ in hasChanges = true }

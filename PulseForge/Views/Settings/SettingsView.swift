@@ -6,7 +6,7 @@
 //
 //  Apple App Store Compliance (required for review):
 //  - Settings screen for user preferences, HealthKit, account, and support.
-//  - Premium features clearly promoted and linked to SubscriptionView.
+//  - Premium card always navigates to PremiumTeaserView (both states); manages subscription from there.
 //  - HealthKit toggle wired to live manager via .onChange; only enables sync when authorised.
 //  - Full VoiceOver accessibility, Dynamic Type, and Reduce Motion support.
 //  - No data leaves the device except private iCloud (premium only).
@@ -146,12 +146,13 @@ struct SettingsView: View {
     // MARK: - Premium Section
 
     /// Full-bleed gradient card promoting the premium subscription.
-    /// Shows an "Active" badge when already subscribed; a CTA otherwise.
+    /// Always navigates to `PremiumTeaserView`, which handles both the
+    /// upgrade flow (non-subscribed) and manage-subscription UI (subscribed).
     private var premiumSection: some View {
         Section {
             VStack(alignment: .leading, spacing: 14) {
 
-                // Header row
+                // Header row — always visible
                 HStack(spacing: 10) {
                     ZStack {
                         Circle()
@@ -176,30 +177,37 @@ struct SettingsView: View {
 
                 Divider().overlay(.white.opacity(0.25))
 
-                // CTA / status
+                // Bottom row — always a NavigationLink to PremiumTeaserView
                 if purchaseManager.isSubscribed {
-                    // Subscribed state
-                    HStack(spacing: 8) {
-                        Image(systemName: "checkmark.seal.fill")
-                            .foregroundStyle(.yellow)
-                            .accessibilityHidden(true)
-                        Text("Premium Active")
-                            .font(.system(.subheadline, design: .serif, weight: .semibold))
-                            .foregroundStyle(.white)
-                        Spacer()
-                        Text("ACTIVE")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .foregroundStyle(themeColor)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Capsule().fill(.white))
-                            .tracking(1)
+                    // Subscribed: invite the user to view benefits / manage
+                    NavigationLink(destination: PremiumTeaserView()) {
+                        HStack(spacing: 10) {
+                            Image(systemName: "checkmark.seal.fill")
+                                .foregroundStyle(.yellow)
+                                .accessibilityHidden(true)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text("Premium Active")
+                                    .font(.system(.subheadline, design: .serif, weight: .semibold))
+                                    .foregroundStyle(.white)
+                                Text("View benefits & manage subscription")
+                                    .font(.system(.caption2, design: .serif))
+                                    .foregroundStyle(.white.opacity(0.7))
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(.white.opacity(0.55))
+                        }
+                        .padding(.vertical, 10)
+                        .padding(.horizontal, 14)
+                        .background(.white.opacity(0.15))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel("Premium subscription is active")
+                    .accessibilityLabel("Premium Active — View benefits and manage subscription")
+                    .accessibilityHint("Opens the premium features and subscription management screen")
                 } else {
-                    // Upsell state
-                    NavigationLink(destination: SubscriptionView()) {
+                    // Non-subscribed: upsell link
+                    NavigationLink(destination: PremiumTeaserView()) {
                         HStack {
                             Text("Subscribe to Premium")
                                 .font(.system(.subheadline, design: .serif, weight: .semibold))
@@ -215,7 +223,7 @@ struct SettingsView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
                     .accessibilityLabel("Subscribe to Premium")
-                    .accessibilityHint("Opens the subscription screen")
+                    .accessibilityHint("Opens the premium subscription screen")
                 }
             }
             .padding(16)
@@ -393,14 +401,19 @@ struct SettingsView: View {
                 label:     "Privacy & Security Policy",
                 url:       URL(string: "https://Joe-dev574.github.io/pulseforge-privacy")!
             )
+            .foregroundStyle(.blue)
+                .accessibilityLabel("View Privacy Policy")
+                .accessibilityHint("Opens in browser")
 
             SettingsLinkRow(
                 iconName:  "doc.text.fill",
                 iconColor: .teal,
-                label:     "Terms of Use",
-                url:       URL(string: "https://pulseforge.app/terms")!
+                label:     "Terms of Service",
+                url:       URL(string: "https://joe-dev574.github.io/PulseForge_Terms_of_Service/")!
             )
-
+            .foregroundStyle(.blue)
+                .accessibilityLabel("View Terms of Service")
+                .accessibilityHint("Opens in browser")
             // Version row — never hardcoded
             SettingsRow(iconName: "info.circle.fill", iconColor: .green) {
                 HStack {

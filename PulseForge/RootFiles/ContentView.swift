@@ -82,19 +82,37 @@ struct ContentView: View {
     /// Restores the authentication state and transitions away from the loading screen.
     ///
     /// This runs once when ContentView appears and ensures a smooth, non-flashing transition.
+    ///
+    /// ## Why no sleep?
+    /// `AuthenticationManager.restoreSession()` is called synchronously inside its
+    /// `init()`, which runs when `AuthenticationManager.shared` is first accessed —
+    /// before ContentView is ever rendered. By the time this `.task` fires, the auth
+    /// state is already fully populated. A single `Task.yield()` gives the run loop
+    /// one cooperative scheduling point so any pending SwiftUI state updates can
+    /// settle, without imposing an artificial delay on every app launch.
     private func restoreAuthenticationState() async {
         logger.info("ContentView appeared — Checking authentication state")
-        
-        // Give AuthenticationManager a moment to restore from shared defaults / SwiftData
-        // (Usually completes instantly, but we add a tiny safety delay for first launch)
-        try? await Task.sleep(for: .milliseconds(400))
-        
+
+        // One cooperative yield — no artificial delay.
+        await Task.yield()
+
+        #if DEBUG
+        // ── TESTING ONLY ────────────────────────────────────────────────────
+        // Forces the onboarding flow on every launch so it can be reviewed
+        // without deleting the app. Automatically excluded from Release builds.
+        if let user = auth.currentUser {
+            user.isOnboardingComplete = false
+            logger.debug("DEBUG: isOnboardingComplete reset → onboarding will show")
+        }
+        // ────────────────────────────────────────────────────────────────────
+        #endif
+
         logger.info("""
-            Authentication check complete → 
-            Signed in: \(auth.isSignedIn) | 
+            Authentication check complete → \
+            Signed in: \(auth.isSignedIn) | \
             Onboarding complete: \(auth.currentUser?.isOnboardingComplete ?? false)
             """)
-        
+
         // Smooth transition away from loading screen
         withAnimation(.easeInOut(duration: 0.25)) {
             isLoading = false

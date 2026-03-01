@@ -64,7 +64,7 @@ struct WorkoutCard: View {
             // ── Category stripe ───────────────────────────────────────────────
             // Full-height accent bar — the primary visual classifier.
             accent
-                .frame(width: 5)
+                .frame(width: 7)
                 .clipShape(
                     UnevenRoundedRectangle(
                         topLeadingRadius:     14,
@@ -104,7 +104,7 @@ struct WorkoutCard: View {
     private var ghostedCategoryLabel: some View {
         Text((workout.category?.categoryName ?? "").uppercased())
             .font(.system(size: 48, weight: .black, design: .rounded))
-            .foregroundStyle(accent.opacity(0.07))
+            .foregroundStyle(accent.opacity(0.09))
             .lineLimit(1)
             .allowsTightening(true)
             .padding(.trailing, -4)
@@ -137,7 +137,7 @@ struct WorkoutCard: View {
 
                 if let categoryName = workout.category?.categoryName {
                     Text(categoryName.uppercased())
-                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        .font(.system(size: 14, weight: .bold, design: .monospaced))
                         .foregroundStyle(accent)
                         .tracking(1.5)
                 }
@@ -232,9 +232,9 @@ struct WorkoutCard: View {
     private var personalBestBadge: some View {
         HStack(spacing: 4) {
             Image(systemName: "star.fill")
-                .font(.system(size: 9, weight: .bold))
+                .font(.system(size: 12, weight: .bold))
             Text("PB")
-                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                .font(.system(size: 12, weight: .bold, design: .monospaced))
         }
         .foregroundStyle(Color(.systemBackground))
         .padding(.horizontal, 7)

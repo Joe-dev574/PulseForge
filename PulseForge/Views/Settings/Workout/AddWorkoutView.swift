@@ -31,6 +31,8 @@ struct AddWorkoutView: View {
     @State private var roundsCount:         Int        = 3
     @State private var showCategoryPicker:  Bool       = false
 
+    @State private var showExerciseInfo:     Bool       = false
+
     @FocusState private var focusedExerciseIndex: Int?
 
     // MARK: - Theme
@@ -67,6 +69,11 @@ struct AddWorkoutView: View {
                 .toolbar { toolbarContent }
                 .sheet(isPresented: $showCategoryPicker) {
                     CategoryPicker(selectedCategory: $selectedCategory)
+                }
+                .sheet(isPresented: $showExerciseInfo) {
+                    exerciseInfoSheet
+                        .presentationDetents([.medium])
+                        .presentationDragIndicator(.visible)
                 }
             }
         }
@@ -235,6 +242,18 @@ struct AddWorkoutView: View {
                     .font(.system(size: 10, weight: .bold, design: .monospaced))
                     .foregroundStyle(themeColor)
                     .tracking(2)
+
+                Button {
+                    showExerciseInfo = true
+                } label: {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.blue)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Exercise formatting tips")
+                .accessibilityHint("Opens a guide on how to name exercises")
+
                 Spacer()
                 Button {
                     let newIndex = exercises.count
@@ -311,6 +330,72 @@ struct AddWorkoutView: View {
         }
     }
 
+    // MARK: - Exercise Info Sheet
+
+    private var exerciseInfoSheet: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                // Header
+                HStack(spacing: 12) {
+                    Image(systemName: "lightbulb.fill")
+                        .font(.system(size: 24, weight: .semibold))
+                        .foregroundStyle(.yellow)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Exercise Tips")
+                            .font(.title3.weight(.bold))
+                            .foregroundStyle(.primary)
+                        Text("Name exercises your way")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Divider()
+
+                // Description
+                Text("Exercises are flexible — describe them however works best for you. There are no rigid fields for sets, reps, or weight. Everything lives in the exercise title.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                // Examples
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("EXAMPLES")
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .tracking(2)
+
+                    ExerciseExampleRow(
+                        text: "Bench Press 3×10",
+                        caption: "Name with sets × reps"
+                    )
+                    ExerciseExampleRow(
+                        text: "Squats 4×8 @ 185 lbs",
+                        caption: "Include weight if you want"
+                    )
+                    ExerciseExampleRow(
+                        text: "Plank 60s",
+                        caption: "Time-based works too"
+                    )
+                    ExerciseExampleRow(
+                        text: "Pull-Ups",
+                        caption: "Or just the name — keep it simple"
+                    )
+                }
+
+                Divider()
+
+                // Summary
+                Text("PulseForge never boxes you in. Skip sets, reps, and weight — or include everything. The exercise title is yours to define.")
+                    .font(.footnote)
+                    .foregroundStyle(.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(24)
+        }
+        .background(Color(.systemGroupedBackground))
+    }
+
     private var exerciseEmptyState: some View {
         VStack(spacing: 12) {
             Image(systemName: "list.bullet.clipboard")
@@ -335,18 +420,13 @@ struct AddWorkoutView: View {
     // MARK: - Toolbar
 
     private var toolbarContent: some ToolbarContent {
-        Group {
-            ToolbarItem(placement: .topBarLeading) {
-                Button("Cancel") { dismiss() }
-                    .foregroundStyle(.secondary)
-            }
+    
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Save") { saveWorkout() }
                     .disabled(isSaveDisabled)
                     .fontWeight(.semibold)
                     .foregroundStyle(isSaveDisabled ? .secondary : themeColor)
             }
-        }
     }
 
     // MARK: - Save Logic
@@ -401,3 +481,28 @@ private struct SectionLabel: View {
         .accessibilityAddTraits(.isHeader)
     }
 }
+// MARK: - ExerciseExampleRow
+
+private struct ExerciseExampleRow: View {
+    let text: String
+    let caption: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text(text)
+                .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                .foregroundStyle(.primary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color(.tertiarySystemFill))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+
+            Text(caption)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
