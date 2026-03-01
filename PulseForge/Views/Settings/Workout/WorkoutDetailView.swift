@@ -21,9 +21,15 @@ import SwiftData
 /// appropriate labels, hints, and grouped elements for VoiceOver support.
 struct WorkoutDetailView: View {
     
+    // MARK: - Environment
+    @Environment(\.modelContext) private var context
+
     // MARK: - Properties
     let workout: Workout
-    
+
+    @State private var historyToDelete: History?
+    @State private var showDeleteConfirmation = false
+
     @AppStorage("selectedThemeColorData") private var selectedThemeColorData: String = "#0096FF"
     
     private var themeColor: Color {
@@ -57,6 +63,18 @@ struct WorkoutDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
             .tint(tintColor)
             .toolbar { editToolbar(tintColor: tintColor) }
+            .alert("Delete Session",
+                   isPresented: $showDeleteConfirmation,
+                   presenting: historyToDelete) { history in
+                Button("Delete", role: .destructive) {
+                    deleteHistory(history)
+                }
+                Button("Cancel", role: .cancel) {
+                    historyToDelete = nil
+                }
+            } message: { history in
+                Text("Delete the session from \(history.date, format: .dateTime.month(.abbreviated).day().year())? This cannot be undone.")
+            }
             .accessibilityLabel("Workout detail view")
         }
     }
@@ -258,6 +276,14 @@ struct WorkoutDetailView: View {
                 }
                 .accessibilityHint("Tap to view details for this workout history entry")
                 .accessibilityAddTraits(.isButton)
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button(role: .destructive) {
+                        historyToDelete = historyItem
+                        showDeleteConfirmation = true
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
             }
             
             if let mostRecent = entries.first {
@@ -304,6 +330,16 @@ struct WorkoutDetailView: View {
         }
     }
     
+    // MARK: - Delete History
+
+    private func deleteHistory(_ history: History) {
+        withAnimation {
+            context.delete(history)
+            try? context.save()
+        }
+        historyToDelete = nil
+    }
+
     // MARK: - Helpers
     private func formatDuration(_ seconds: Double) -> String {
         let totalSeconds = max(0, Int(seconds.rounded()))
