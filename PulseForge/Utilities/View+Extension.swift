@@ -72,11 +72,15 @@ extension Color {
     /// Converts the color to a hex string (e.g., "#FF0000").
     /// - Returns: The hex string representation, or "#000000" if conversion fails.
     var hex: String {
+        #if canImport(UIKit)
         guard let components = UIColor(self).cgColor.components, components.count >= 3 else { return "#000000" }
         let r = Int(components[0] * 255)
         let g = Int(components[1] * 255)
         let b = Int(components[2] * 255)
         return String(format: "#%02X%02X%02X", r, g, b)
+        #else
+        return "#000000"
+        #endif
     }
 }
 

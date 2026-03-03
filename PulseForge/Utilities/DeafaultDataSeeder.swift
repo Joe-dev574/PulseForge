@@ -21,7 +21,7 @@ public final class DefaultDataSeeder {
     ///
     /// - Parameter container: The ModelContainer to use for seeding.
     public static func ensureDefaults(in container: ModelContainer) async {
-        let context = ModelContext(container)
+        let context = container.mainContext
 
         let defaults: [(name: String, symbol: String, color: CategoryColor)] = [
             ("Cardio",       "heart.fill",                          .CARDIO),

@@ -32,6 +32,10 @@
 		37C2F1422F46305B00D63B1D /* PulseForgeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PulseForgeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		37C2F14C2F46305B00D63B1D /* PulseForgeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PulseForgeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		37C2F1B82F49130A00D63B1D /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
+		37CE43DC2F550D4A007B0911 /* PulseForgeWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PulseForgeWatchApp.swift; sourceTree = "<group>"; };
+		37CE43DD2F550D4D007B0911 /* WatchContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchContentView.swift; sourceTree = "<group>"; };
+		37CE43DE2F550D71007B0911 /* WatchWorkoutListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchWorkoutListView.swift; sourceTree = "<group>"; };
+		37CE43DF2F550DA9007B0911 /* WatchWorkoutSessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchWorkoutSessionView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -99,6 +103,7 @@
 				37C2F14F2F46305B00D63B1D /* PulseForgeUITests */,
 				37C2F1B72F49130A00D63B1D /* Frameworks */,
 				37C2F1362F46305800D63B1D /* Products */,
+				37CE43DB2F550D44007B0911 /* PulseForgeWatch */,
 			);
 			sourceTree = "<group>";
 		};
@@ -118,6 +123,17 @@
 				37C2F1B82F49130A00D63B1D /* StoreKit.framework */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		37CE43DB2F550D44007B0911 /* PulseForgeWatch */ = {
+			isa = PBXGroup;
+			children = (
+				37CE43DC2F550D4A007B0911 /* PulseForgeWatchApp.swift */,
+				37CE43DD2F550D4D007B0911 /* WatchContentView.swift */,
+				37CE43DE2F550D71007B0911 /* WatchWorkoutListView.swift */,
+				37CE43DF2F550DA9007B0911 /* WatchWorkoutSessionView.swift */,
+			);
+			path = PulseForgeWatch;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

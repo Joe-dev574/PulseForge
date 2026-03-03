@@ -306,6 +306,43 @@ final class HealthKitManager {
     }
     #endif
     
+    // MARK: - Platform-Agnostic Workout Session API
+    /// Starts a workout session on the current platform (iPhone or Watch).
+    func startWorkoutSession(workout: Workout) async {
+        #if os(watchOS)
+        await startWatchWorkoutSession(workout: workout)
+        #else
+        await startPhoneWorkoutSession(workout: workout)
+        #endif
+    }
+    
+    /// Pauses the active workout session on the current platform.
+    func pauseActiveWorkoutSession() async {
+        #if os(watchOS)
+        await pauseWatchWorkoutSession()
+        #else
+        await pausePhoneWorkoutSession()
+        #endif
+    }
+    
+    /// Resumes the active workout session on the current platform.
+    func resumeActiveWorkoutSession() async {
+        #if os(watchOS)
+        await resumeWatchWorkoutSession()
+        #else
+        await resumePhoneWorkoutSession()
+        #endif
+    }
+    
+    /// Ends the active workout session on the current platform.
+    func endActiveWorkoutSession() async {
+        #if os(watchOS)
+        await endWatchWorkoutSession()
+        #else
+        await endPhoneWorkoutSession()
+        #endif
+    }
+    
     // MARK: - Fetch Latest Quantity (Generic)
     /// Fetches the latest value for a HealthKit quantity type asynchronously.
     ///

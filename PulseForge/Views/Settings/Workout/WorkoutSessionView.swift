@@ -83,7 +83,9 @@ struct WorkoutSessionView: View {
                     .simultaneousGesture(
                         TapGesture().onEnded {
                             viewModel.togglePause()
+                            #if os(iOS)
                             UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                            #endif
                         }
                     )
             }
@@ -349,7 +351,9 @@ struct WorkoutSessionView: View {
         VStack(spacing: 14) {
             // Primary: Next Exercise / Complete
             Button {
+                #if os(iOS)
                 UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                #endif
                 Task { await viewModel.primaryButtonAction() }
             } label: {
                 ZStack {
@@ -383,7 +387,9 @@ struct WorkoutSessionView: View {
 
             // Secondary: Pause / Resume
             Button {
+                #if os(iOS)
                 UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                #endif
                 viewModel.togglePause()
             } label: {
                 HStack(spacing: 8) {

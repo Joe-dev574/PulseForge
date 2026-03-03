@@ -111,14 +111,14 @@ final class WorkoutSessionViewModel {
             timer = nil
             if let healthKitManager = healthKitManager {
                 Task {
-                    await healthKitManager.pausePhoneWorkoutSession()
+                    await healthKitManager.pauseActiveWorkoutSession()
                 }
             }
         } else {
             startTimer()
             if let healthKitManager = healthKitManager {
                 Task {
-                    await healthKitManager.resumePhoneWorkoutSession()
+                    await healthKitManager.resumeActiveWorkoutSession()
                 }
             }
         }

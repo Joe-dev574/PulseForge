@@ -84,10 +84,10 @@ struct PulseForgeApp: App {
         if duplicatesRemoved > 0 {
             try? context.save()
             print("Removed \(duplicatesRemoved) duplicate category/categories.")
-        } else {
-            // Store is clean — skip this fetch on future launches.
-            hasDeduplicatedCategories = true
         }
+        // Mark as done regardless — duplicates are now cleaned,
+        // and the seeder's single-context fix prevents new ones.
+        hasDeduplicatedCategories = true
     }
 
     /// Seeds default categories and other initial data exactly once.
