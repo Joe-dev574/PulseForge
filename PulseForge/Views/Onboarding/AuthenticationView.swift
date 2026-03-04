@@ -45,6 +45,7 @@ struct AuthenticationView: View {
     
     // MARK: - Constants
     
+    // TODO: Verify this Privacy Policy URL matches SettingsView before shipping (currently different URLs)
     private let privacyPolicyURL = URL(string: "https://pulseforge.app/privacy")!
     private let supportEmailURL = URL(string: "mailto:support@pulseforge.app")!
     

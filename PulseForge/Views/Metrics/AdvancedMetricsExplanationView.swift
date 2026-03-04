@@ -31,6 +31,9 @@ struct AdvancedMetricsExplanationView: View {
                 intensityCard
                 progressPulseCard
                 dominantZoneCard
+                weeklyAvgIntensityCard
+                consistencyCard
+                mostTrainedCategoryCard
                 footerNote
             }
             .padding(20)
@@ -222,6 +225,133 @@ struct AdvancedMetricsExplanationView: View {
 
             MetricSectionLabel("WHY IT MATTERS")
             Text("Most improvements come from training the right zones on the right days. Use this metric to ensure your week contains variety — not just all-out efforts — and to confirm that easy days are truly easy.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    // MARK: - Weekly Avg Intensity Card
+
+    private var weeklyAvgIntensityCard: some View {
+        MetricCard(accent: .orange) {
+            MetricCardHeader(
+                icon: "chart.line.uptrend.xyaxis",
+                title: "Weekly Avg Intensity",
+                badge: "0 – 100%",
+                color: .orange
+            )
+
+            MetricSectionLabel("HOW IT'S CALCULATED")
+
+            Text("Each workout's **Intensity Score** (Heart Rate Reserve method) is recorded. At the end of each week, all scores are averaged to produce a single weekly value.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 8) {
+                FormulaTermRow(term: "Per Session", definition: "Intensity Score = (Avg HR − Resting HR) / (Max HR − Resting HR) × 100")
+                FormulaTermRow(term: "Weekly Avg", definition: "Sum of weekly Intensity Scores ÷ number of sessions that week")
+                FormulaTermRow(term: "Graph", definition: "12 data points — one per week — plotted oldest to newest")
+            }
+
+            Divider().padding(.vertical, 4)
+
+            MetricSectionLabel("HOW TO READ THE GRAPH")
+
+            VStack(alignment: .leading, spacing: 10) {
+                ZoneInsightRow(icon: "arrow.up.right", color: .orange, text: "Rising trend: Your average effort is increasing — you're pushing harder or adapting to higher workloads.")
+                ZoneInsightRow(icon: "arrow.right", color: .yellow, text: "Flat trend: Consistent effort. Good during a maintenance phase, but may signal a plateau if you're trying to progress.")
+                ZoneInsightRow(icon: "arrow.down.right", color: .teal, text: "Declining trend: Could indicate planned deload, reduced effort, or a need to revisit programming.")
+            }
+
+            Divider().padding(.vertical, 4)
+
+            MetricSectionLabel("WHY IT MATTERS")
+            Text("A single session's intensity can fluctuate for many reasons. Averaging across each week smooths out noise and reveals the true direction of your training effort over the past 12 weeks.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    // MARK: - Consistency Card
+
+    private var consistencyCard: some View {
+        MetricCard(accent: .green) {
+            MetricCardHeader(
+                icon: "checkmark.circle.fill",
+                title: "Consistency",
+                badge: "0 – 12 wks",
+                color: .green
+            )
+
+            MetricSectionLabel("HOW IT'S CALCULATED")
+
+            Text("The last **12 calendar weeks** are examined. A week counts as \"active\" if it contains **at least one completed workout**.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 8) {
+                FormulaTermRow(term: "Window", definition: "12 weeks rolling, ending with the current week")
+                FormulaTermRow(term: "Active Week", definition: "Any week where ≥ 1 workout was logged")
+                FormulaTermRow(term: "Score", definition: "Active weeks ÷ 12 (displayed as X / 12)")
+            }
+
+            Divider().padding(.vertical, 4)
+
+            MetricSectionLabel("WHAT YOUR SCORE MEANS")
+
+            ScoreRangeGuide(bands: [
+                ScoreBand(range: "0 – 4",   label: "Building",    detail: "Training is sporadic. Focus on showing up — even short sessions count.", color: .gray),
+                ScoreBand(range: "5 – 8",   label: "Developing",  detail: "You're training regularly but missing weeks. Aim for fewer gaps.", color: .blue),
+                ScoreBand(range: "9 – 11",  label: "Consistent",  detail: "Strong habit. Nearly every week has at least one session logged.", color: .green),
+                ScoreBand(range: "12 / 12", label: "Locked In",   detail: "Perfect consistency. Every week trained for the past 3 months.", color: .orange),
+            ])
+
+            Divider().padding(.vertical, 4)
+
+            MetricSectionLabel("WHY IT MATTERS")
+            Text("Consistency is the single strongest predictor of long-term progress. Intensity and volume matter, but only when applied regularly. This metric keeps you honest about whether you're showing up week after week.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    // MARK: - Most Trained Category Card
+
+    private var mostTrainedCategoryCard: some View {
+        MetricCard(accent: .indigo) {
+            MetricCardHeader(
+                icon: "trophy.fill",
+                title: "Most Trained Category",
+                badge: "90 days",
+                color: .indigo
+            )
+
+            MetricSectionLabel("HOW IT'S CALCULATED")
+
+            Text("All workouts from the last **90 days** are grouped by their assigned category. The category with the **highest session count** is your Most Trained Category.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 8) {
+                FormulaTermRow(term: "Window", definition: "90-day rolling period (same as the activity heatmap)")
+                FormulaTermRow(term: "Grouping", definition: "Each session is counted under its workout's category")
+                FormulaTermRow(term: "Result", definition: "Category with the most sessions wins the tile")
+            }
+
+            Divider().padding(.vertical, 4)
+
+            MetricSectionLabel("HOW TO USE THIS INSIGHT")
+
+            VStack(alignment: .leading, spacing: 10) {
+                ZoneInsightRow(icon: "arrow.triangle.2.circlepath", color: .indigo, text: "If one category dominates, consider whether that's intentional or if other areas are being neglected.")
+                ZoneInsightRow(icon: "scalemass.fill", color: .purple, text: "Balanced training across categories reduces injury risk and builds a more well-rounded fitness base.")
+                ZoneInsightRow(icon: "target", color: .green, text: "Specialisation is fine when deliberate — this metric helps you confirm your focus matches your goals.")
+            }
+
+            Divider().padding(.vertical, 4)
+
+            MetricSectionLabel("WHY IT MATTERS")
+            Text("Understanding where you spend most of your training time reveals unconscious biases in your programming. Use this to confirm your priorities or rebalance toward underserved movement patterns.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }

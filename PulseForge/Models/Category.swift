@@ -48,6 +48,7 @@ enum CategoryColor: String, Codable, CaseIterable {
     case STRENGTH
     /// Swimming workouts.
     case SWIMMING
+    // TODO: Remove TEST case before shipping — development-only category
     /// Test or miscellaneous workouts.
     case TEST
     /// Walking workouts.
@@ -166,6 +167,7 @@ final class Category: Identifiable, Equatable {
         )
         guard !trimmedName.isEmpty else {
             logger.error("Attempted to create category with empty name")
+            // TODO: Replace fatalError with a throwing initialiser before shipping — crashes on empty input
             fatalError("Category name cannot be empty or whitespace-only")
         }
         self.categoryName = trimmedName

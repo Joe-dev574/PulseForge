@@ -83,6 +83,7 @@ struct PulseForgeApp: App {
 
         if duplicatesRemoved > 0 {
             try? context.save()
+            // TODO: Replace print() with Logger before shipping
             print("Removed \(duplicatesRemoved) duplicate category/categories.")
         }
         // Mark as done regardless — duplicates are now cleaned,
@@ -99,6 +100,7 @@ struct PulseForgeApp: App {
         // Quick check: if categories already exist, skip (redundant but fast)
         let fetchRequest = FetchDescriptor<Category>()
         guard let count = try? context.fetchCount(fetchRequest), count == 0 else {
+            // TODO: Replace print() with Logger before shipping
             print("Categories already exist; skipping seeding.")
             hasSeededDefaults = true
             return
@@ -109,8 +111,10 @@ struct PulseForgeApp: App {
         hasSeededDefaults = true
         do {
             try context.save()  // Explicit save for safety (though SwiftData auto-saves)
+            // TODO: Replace print() with Logger before shipping
             print("Default data seeded successfully.")
         } catch {
+            // TODO: Replace print() with Logger before shipping
             print("Failed to save context after seeding: \(error.localizedDescription)")
         }
     }

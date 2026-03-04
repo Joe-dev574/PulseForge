@@ -182,6 +182,7 @@ final class AuthenticationManager {
     ///
     /// This is idempotent and only active in simulator environments.
     /// Safe for production builds as it returns early in non-simulator targets.
+    // TODO: Remove simulator bypass before shipping — debug user ID and fake sign-in in production binary
     func bypassSignInForSimulator() {
         guard isSimulator else { return }
         
@@ -236,7 +237,7 @@ final class AuthenticationManager {
             logger.info("New User created and saved")
         } catch {
             logger.error("Failed to save new User: \(error.localizedDescription)")
-            // Optimization: In production, add retry or error propagation
+            // TODO: Add retry or error propagation before shipping — save failure is silently swallowed
         }
         
         return newUser

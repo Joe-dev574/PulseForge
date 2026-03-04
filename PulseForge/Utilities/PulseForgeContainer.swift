@@ -44,6 +44,7 @@ public final class PulseForgeContainer {
         
         let fileManager = FileManager.default
         guard let groupURL = fileManager.containerURL(forSecurityApplicationGroupIdentifier: "group.com.tnt.PulseForge") else {
+            // TODO: Replace fatalError with graceful error handling before shipping — crashes on misconfigured entitlements
             fatalError("Failed to get App Group container URL. Ensure App Groups are configured in project capabilities.")
         }
         
@@ -51,6 +52,7 @@ public final class PulseForgeContainer {
         do {
             try fileManager.createDirectory(at: groupURL, withIntermediateDirectories: true, attributes: nil)
         } catch {
+            // TODO: Replace fatalError with graceful error handling before shipping — crashes if disk full
             fatalError("Failed to create App Group directory: \(error.localizedDescription)")
         }
         
@@ -75,6 +77,7 @@ public final class PulseForgeContainer {
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])
         } catch {
+            // TODO: Replace fatalError with graceful error handling before shipping — crashes on schema migration failure
             fatalError("Failed to initialize ModelContainer: \(error.localizedDescription). Check schema compatibility and entitlements.")
         }
     }()

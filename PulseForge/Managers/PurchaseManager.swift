@@ -143,6 +143,7 @@ public class PurchaseManager {
     
     private func refreshSubscriptionStatus() async {
         #if DEBUG
+        // TODO: Remove this entire #if DEBUG block before shipping — forces premium ON for all debug builds
         // ── TEMPORARY FOR TESTING ──
         // This forces premium ON while you're developing.
         // Remove or comment this whole #if block before archiving for App Store.

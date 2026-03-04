@@ -399,6 +399,7 @@ struct SettingsView: View {
                 iconName:  "hand.raised.fill",
                 iconColor: .indigo,
                 label:     "Privacy & Security Policy",
+                // TODO: Update Privacy Policy URL to production domain before shipping
                 url:       URL(string: "https://Joe-dev574.github.io/pulseforge-privacy")!
             )
             .foregroundStyle(.blue)
@@ -409,6 +410,7 @@ struct SettingsView: View {
                 iconName:  "doc.text.fill",
                 iconColor: .teal,
                 label:     "Terms of Service",
+                // TODO: Update Terms of Service URL to production domain before shipping
                 url:       URL(string: "https://joe-dev574.github.io/PulseForge_Terms_of_Service/")!
             )
             .foregroundStyle(.blue)

@@ -125,6 +125,7 @@ final class Workout {
         roundsQuantity: Int = 1
     ) {
         // Programmer error: callers must never supply an empty title.
+        // TODO: Replace precondition with a throwing initialiser before shipping — title is user-controlled input
         precondition(!title.trimmingCharacters(in: .whitespaces).isEmpty,
                      "Workout title must not be empty or whitespace-only.")
         self.title               = title.trimmingCharacters(in: .whitespaces)

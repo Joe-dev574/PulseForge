@@ -209,11 +209,18 @@ struct ProgressBoardView: View {
     @State private var weeklyDurations:            [Double]      = []
     @State private var weeklyWorkoutCounts:        [Int]         = []
     @State private var weeklyProgressPulseScores:  [Double]      = []
+    @State private var weeklyAvgIntensityScores:  [Double]      = []
 
     @State private var totalWorkoutsLast90Days:          Int    = 0
     @State private var totalDurationLast90DaysFormatted: String = "—"
     @State private var avgWorkoutsPerWeekLast90Days:     Double = 0.0
     @State private var distinctActiveDaysLast90Days:     Int    = 0
+
+    @State private var consistencyWeeks:             Int    = 0
+    @State private var consistencyTotal:             Int    = 12
+    @State private var mostTrainedCategory:          String = "—"
+    @State private var mostTrainedCategoryCount:     Int    = 0
+    @State private var mostTrainedCategorySymbol:    String = "figure.run"
 
     @State private var latestCategoryMetrics:  [String: WorkoutMetrics] = [:]
     @State private var isLoading:              Bool = true
@@ -242,6 +249,7 @@ struct ProgressBoardView: View {
                             heatmapSection
                             statsGridSection
                             graphsSection
+                            premiumInsightsSection
                             premiumOrTeaserSection
                         }
                         .padding(.horizontal, 16)
@@ -433,6 +441,40 @@ struct ProgressBoardView: View {
                     title:         "Weekly Progress Pulse",
                     fixedMaxValue: 100
                 )
+
+                WorkoutGraph(
+                    values:        weeklyAvgIntensityScores,
+                    themeColor:    .orange,
+                    title:         "Weekly Avg Intensity",
+                    fixedMaxValue: 100
+                )
+            }
+        }
+    }
+
+    // MARK: - Premium Insights Section
+
+    @ViewBuilder
+    private var premiumInsightsSection: some View {
+        if purchaseManager.isSubscribed {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionHeader("PREMIUM INSIGHTS")
+
+                LazyVGrid(
+                    columns: [GridItem(.flexible()), GridItem(.flexible())],
+                    spacing: 10
+                ) {
+                    statTile(
+                        item: .consistency,
+                        value: "\(consistencyWeeks)/\(consistencyTotal)",
+                        icon: "checkmark.circle.fill"
+                    )
+                    statTile(
+                        item: .mostTrainedCategory,
+                        value: mostTrainedCategory,
+                        icon: mostTrainedCategorySymbol
+                    )
+                }
             }
         }
     }
@@ -640,15 +682,50 @@ struct ProgressBoardView: View {
                 return scores.isEmpty ? 0 : scores.reduce(0, +) / Double(scores.count)
             }.reversed()
 
+            // Premium: Weekly Avg Intensity (12 weeks)
+            let weeklyIntensity: [Double] = (0..<12).map { w -> Double in
+                let end    = calendar.date(byAdding: .day, value: -(w * 7), to: startOfToday)!
+                let start  = calendar.date(byAdding: .day, value: -6, to: end)!
+                let scores = history.filter {
+                    let d = calendar.startOfDay(for: $0.date)
+                    return d >= start && d <= end && $0.intensityScore != nil
+                }.compactMap(\.intensityScore)
+                return scores.isEmpty ? 0 : scores.reduce(0, +) / Double(scores.count)
+            }.reversed()
+
+            // Premium: Consistency — weeks with ≥1 workout out of last 12
+            let activeWeeks = (0..<12).filter { w in
+                let end   = calendar.date(byAdding: .day, value: -(w * 7), to: startOfToday)!
+                let start = calendar.date(byAdding: .day, value: -6, to: end)!
+                return history.contains {
+                    let d = calendar.startOfDay(for: $0.date)
+                    return d >= start && d <= end
+                }
+            }.count
+
+            // Premium: Most Trained Category
+            let categoryGroups = Dictionary(grouping: history) { h in
+                h.workout?.category?.categoryName ?? ""
+            }.filter { !$0.key.isEmpty }
+            let topCategory = categoryGroups.max(by: { $0.value.count < $1.value.count })
+            let topCatName   = topCategory?.key ?? "—"
+            let topCatCount  = topCategory?.value.count ?? 0
+            let topCatSymbol = topCategory?.value.first?.workout?.category?.symbol ?? "figure.run"
+
             await MainActor.run {
                 self.daysToDisplay                    = days
                 self.weeklyDurations                  = weeklyDur
                 self.weeklyWorkoutCounts              = weeklyCounts
                 self.weeklyProgressPulseScores        = weeklyPulse
+                self.weeklyAvgIntensityScores         = weeklyIntensity
                 self.totalWorkoutsLast90Days          = totalWorkouts
                 self.totalDurationLast90DaysFormatted = totalFormatted
                 self.avgWorkoutsPerWeekLast90Days     = avgPerWeek
                 self.distinctActiveDaysLast90Days     = distinctDays.count
+                self.consistencyWeeks                 = activeWeeks
+                self.mostTrainedCategory              = topCatName
+                self.mostTrainedCategoryCount         = topCatCount
+                self.mostTrainedCategorySymbol        = topCatSymbol
                 self.isLoading                        = false
             }
         } catch {
@@ -866,15 +943,19 @@ enum InfoStatItem: String, Identifiable {
     case totalTime
     case avgWorkoutsPerWeek
     case activeDays
+    case consistency
+    case mostTrainedCategory
 
     var id: String { rawValue }
 
     var displayTitle: String {
         switch self {
-        case .totalWorkouts:     return "Total Workouts"
-        case .totalTime:         return "Total Time"
+        case .totalWorkouts:      return "Total Workouts"
+        case .totalTime:          return "Total Time"
         case .avgWorkoutsPerWeek: return "Avg / Week"
-        case .activeDays:        return "Active Days"
+        case .activeDays:         return "Active Days"
+        case .consistency:        return "Consistency"
+        case .mostTrainedCategory: return "Top Category"
         }
     }
 
@@ -888,6 +969,10 @@ enum InfoStatItem: String, Identifiable {
             return "Average workouts per week over the last 90 days."
         case .activeDays:
             return "Number of unique days you trained in the last 90 days."
+        case .consistency:
+            return "Number of weeks with at least one workout out of the last 12 weeks. Measures training habit reliability."
+        case .mostTrainedCategory:
+            return "The workout category you've trained most over the last 90 days, showing your primary training focus."
         }
     }
 }

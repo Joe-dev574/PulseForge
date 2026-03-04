@@ -52,6 +52,7 @@ final class User {
         isOnboardingComplete: Bool = false,
         displayName: String? = nil
     ) {
+        // TODO: Replace precondition with guard/throw before shipping — could crash if Apple returns empty ID
         precondition(!appleUserId.isEmpty, "Apple User ID must not be empty")
         self.appleUserId = appleUserId
         self.email = email

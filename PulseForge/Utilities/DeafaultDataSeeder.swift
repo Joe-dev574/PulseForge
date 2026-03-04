@@ -39,6 +39,7 @@ public final class DefaultDataSeeder {
             ("Stretch",      "figure.flexibility",                  .STRETCH),
             ("Strength",     "figure.strengthtraining.traditional", .STRENGTH),
             ("Swimming",     "figure.pool.swim",                    .SWIMMING),
+            // TODO: Remove "Test" category before shipping — development-only seed data
             ("Test",         "figure.mixed.cardio",                 .TEST),
             ("Walk",         "figure.walk",                         .WALK),
             ("Yoga",         "figure.yoga",                         .YOGA),

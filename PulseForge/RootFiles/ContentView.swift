@@ -67,7 +67,7 @@ struct ContentView: View {
                 .controlSize(.large)
                 .tint(.blue)
             
-            Text("Initializing PulseForge...")
+            Text("Initializing PulseForge, this may take a moment...")
                 .font(.headline)
                 .foregroundStyle(.secondary)
         }
@@ -97,6 +97,7 @@ struct ContentView: View {
         await Task.yield()
 
         #if DEBUG
+        // TODO: Remove this #if DEBUG block before shipping — resets onboarding on every launch
         // ── TESTING ONLY ────────────────────────────────────────────────────
         // Forces the onboarding flow on every launch so it can be reviewed
         // without deleting the app. Automatically excluded from Release builds.

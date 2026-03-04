@@ -23,6 +23,7 @@ struct ImageOptimizer {
     static func optimize(imageData: Data, targetSize: CGSize = CGSize(width: 1024, height: 1024), compressionQuality: CGFloat = 0.7) -> Data? {
         #if os(iOS)
         guard let image = UIImage(data: imageData) else {
+            // TODO: Replace print() with Logger before shipping
             print("ImageOptimizer: Could not create UIImage from data.")
             return nil // Or return original data if optimization fails
         }
@@ -34,6 +35,7 @@ struct ImageOptimizer {
         // Check if resizing is even necessary (if image is already smaller)
         if image.size.width <= newSize.width && image.size.height <= newSize.height {
             // If smaller, just compress without resizing further
+            // TODO: Replace print() with Logger before shipping
             print("ImageOptimizer: Image is smaller than or equal to target, only compressing.")
             return image.jpegData(compressionQuality: compressionQuality)
         }
@@ -44,10 +46,12 @@ struct ImageOptimizer {
             image.draw(in: CGRect(origin: .zero, size: newSize))
         }
         
+        // TODO: Replace print() with Logger before shipping
         print("ImageOptimizer: Resized image from \(image.size) to \(resizedImage.size). Compressing...")
         // Compress
         return resizedImage.jpegData(compressionQuality: compressionQuality)
         #else // watchOS fallback (no AVMakeRect or UIGraphicsImageRenderer available)
+        // TODO: Replace print() with Logger before shipping
         print("ImageOptimizer: Optimization not supported on watchOS; returning original data.")
         return imageData // Or return nil if optimization is required
         #endif
