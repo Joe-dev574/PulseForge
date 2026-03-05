@@ -81,19 +81,24 @@
 			);
 			target = 37C2F1342F46305800D63B1D /* PulseForge */;
 		};
-		37CE440F2F58A75E007B0911 /* Exceptions for "PulseForgeWatch Watch App" folder in "PulseForgeWatch Watch App" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				PulseForgeWatchApp.swift,
-				WatchContentView.swift,
-				WatchWorkoutListView.swift,
-				WatchWorkoutSessionView.swift,
-			);
-			target = 37CE43E32F58A72F007B0911 /* PulseForgeWatch Watch App */;
-		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		370ABE0B2F58F0710049561C /* Managers */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Managers;
+			sourceTree = "<group>";
+		};
+		370ABE0C2F58F07D0049561C /* Models */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Models;
+			sourceTree = "<group>";
+		};
+		370ABE2D2F58F2430049561C /* Utilities */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Utilities;
+			sourceTree = "<group>";
+		};
 		37C2F1372F46305800D63B1D /* PulseForge */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -114,9 +119,6 @@
 		};
 		37CE43E52F58A72F007B0911 /* PulseForgeWatch Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				37CE440F2F58A75E007B0911 /* Exceptions for "PulseForgeWatch Watch App" folder in "PulseForgeWatch Watch App" target */,
-			);
 			path = "PulseForgeWatch Watch App";
 			sourceTree = "<group>";
 		};
@@ -179,9 +181,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		370ABE0A2F58F05D0049561C /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				370ABE2D2F58F2430049561C /* Utilities */,
+				370ABE0C2F58F07D0049561C /* Models */,
+				370ABE0B2F58F0710049561C /* Managers */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
 		37C2F12C2F46305800D63B1D = {
 			isa = PBXGroup;
 			children = (
+				370ABE0A2F58F05D0049561C /* Shared */,
 				37C2F1372F46305800D63B1D /* PulseForge */,
 				37C2F1452F46305B00D63B1D /* PulseForgeTests */,
 				37C2F14F2F46305B00D63B1D /* PulseForgeUITests */,
@@ -232,6 +245,9 @@
 				37CE44032F58A733007B0911 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
+				370ABE0B2F58F0710049561C /* Managers */,
+				370ABE0C2F58F07D0049561C /* Models */,
+				370ABE2D2F58F2430049561C /* Utilities */,
 				37C2F1372F46305800D63B1D /* PulseForge */,
 			);
 			name = PulseForge;
@@ -300,6 +316,9 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				370ABE0B2F58F0710049561C /* Managers */,
+				370ABE0C2F58F07D0049561C /* Models */,
+				370ABE2D2F58F2430049561C /* Utilities */,
 				37CE43E52F58A72F007B0911 /* PulseForgeWatch Watch App */,
 			);
 			name = "PulseForgeWatch Watch App";
@@ -682,7 +701,7 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.2;
@@ -735,7 +754,7 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.2;
@@ -869,6 +888,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "PulseForgeWatch Watch App/PulseForgeWatch Watch App.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -894,7 +914,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
 			};
 			name = Debug;
 		};
@@ -903,6 +923,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "PulseForgeWatch Watch App/PulseForgeWatch Watch App.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -929,7 +950,7 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
 				VALIDATE_PRODUCT = YES;
-				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
 			};
 			name = Release;
 		};

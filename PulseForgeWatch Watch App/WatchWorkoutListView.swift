@@ -86,7 +86,7 @@ private struct WatchWorkoutRow: View {
     let themeColor: Color
     
     private var accent: Color {
-        workout.category?.categoryColor.color ?? Color(.systemGray3)
+        workout.category?.categoryColor.color ?? .gray
     }
     
     private var exerciseCount: Int {
